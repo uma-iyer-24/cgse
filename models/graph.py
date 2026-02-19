@@ -7,10 +7,20 @@ class Node:
         self.module = module
 
 class GraphModule(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim=None, hidden_dim=None, output_dim=None):
         super().__init__()
         self.nodes = nn.ModuleDict()
         self.execution_order = []
+
+        # optional auto-build simple MLP if dims provided
+        if input_dim is not None:
+
+            import torch.nn as nn
+
+            self.add_node("fc1", nn.Linear(input_dim, hidden_dim))
+            self.add_node("relu1", nn.ReLU())
+            self.add_node("fc2", nn.Linear(hidden_dim, output_dim))
+
 
     def add_node(self, node_id, module):
         self.nodes[node_id] = module
