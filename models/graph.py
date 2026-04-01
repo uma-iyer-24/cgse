@@ -14,9 +14,6 @@ class GraphModule(nn.Module):
 
         # optional auto-build simple MLP if dims provided
         if input_dim is not None:
-
-            import torch.nn as nn
-
             self.add_node("fc1", nn.Linear(input_dim, hidden_dim))
             self.add_node("relu1", nn.ReLU())
             self.add_node("fc2", nn.Linear(hidden_dim, output_dim))
@@ -56,9 +53,6 @@ class GraphModule(nn.Module):
                 prev_out = layer.out_features
 
     def widen_node(self, node_id, extra_out):
-        import torch.nn as nn
-        import torch
-    
         node = self.nodes[node_id]
     
         if not isinstance(node, nn.Linear):
@@ -67,7 +61,7 @@ class GraphModule(nn.Module):
         old_out = node.out_features
         new_out = old_out + extra_out
     
-        # create widened layer
+        # --- widen selected layer ---
         new_layer = nn.Linear(node.in_features, new_out)
     
         with torch.no_grad():
@@ -76,23 +70,33 @@ class GraphModule(nn.Module):
     
         self.nodes[node_id] = new_layer
     
-        # ---- PROPAGATE TO NEXT LINEAR ----
+        # --- propagate to ALL downstream Linear layers ---
         order = self.execution_order
         idx = order.index(node_id)
     
+        prev_out = new_out
+    
         for next_id in order[idx+1:]:
-            next_node = self.nodes[next_id]
     
-            if isinstance(next_node, nn.Linear):
+            layer = self.nodes[next_id]
     
-                new_next = nn.Linear(new_out, next_node.out_features)
+            if isinstance(layer, nn.Linear):
+    
+                new_next = nn.Linear(prev_out, layer.out_features)
     
                 with torch.no_grad():
-                    new_next.weight[:, :old_out] = next_node.weight
-                    new_next.bias = next_node.bias
+                    copy_in = min(layer.in_features, prev_out)
+                    new_next.weight[:, :copy_in] = layer.weight[:, :copy_in]
+                    new_next.bias = layer.bias
     
                 self.nodes[next_id] = new_next
-                break
+    
+                prev_out = new_next.out_features
+    
+            elif isinstance(layer, nn.ReLU):
+                # activations keep dimension unchanged
+                continue
+
 
     def insert_after(self, target_id, new_id, new_module):
         if target_id not in self.execution_order:
