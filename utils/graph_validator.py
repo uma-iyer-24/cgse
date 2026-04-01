@@ -1,4 +1,13 @@
+import torch
 import torch.nn as nn
+
+
+def validate_forward(model, x):
+    """Run one forward pass (for CNN / mixed graphs where linear-only checks do not apply)."""
+    model.eval()
+    with torch.no_grad():
+        return model(x)
+
 
 def validate_graph(model, input_dim=16):
     """

@@ -1,0 +1,8 @@
+# Run: phase2_smoke (CPU, CIFAR-10 subset)
+# Command: python train.py --config configs/phase2_smoke.yaml
+# Config: subset_train=512, subset_test=256, epochs=2, device=cpu
+# Dataset: torchvision CIFAR-10 (downloaded to ./data on first run)
+
+Epoch 000 | train_loss 2.6316 | train_acc 0.1621 | val_loss 2.2715 | val_acc 0.1562
+Epoch 001 | train_loss 2.2025 | train_acc 0.2402 | val_loss 2.1354 | val_acc 0.2188
+Saved checkpoint to checkpoints/cgse_phase2_smoke.pt

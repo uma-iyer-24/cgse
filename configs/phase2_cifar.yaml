@@ -1,0 +1,36 @@
+experiment:
+  name: cgse_phase2_cifar
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 2
+  # Use first N training samples for fast iteration (null = full 50k train set)
+  subset_train: 4096
+  # Optional: limit CIFAR-10 test set for faster eval (null = full 10k)
+  subset_test: null
+
+training:
+  epochs: 5
+  batch_size: 128
+  lr: 0.001
+  weight_decay: 0.0005
+  seed: 42
+  # Optional: append one CSV row per epoch (created automatically)
+  log_csv: paper_documentation/runs/phase2_training_metrics.csv
+
+model:
+  name: cifar_cnn
+  num_classes: 10
+
+# Synthetic MLP path (configs/base.yaml style) uses model.input_dim etc.
+
+device: mps
+
+mutation:
+  enabled: false
+  # After finishing this epoch (0-based), apply one widen on first Linear, refresh optimizer.
+  once_after_epoch: 1
+  widen_delta: 32
+  # Optional: append one JSON object per mutation (see utils/mutation_log.py)
+  log_jsonl: null
