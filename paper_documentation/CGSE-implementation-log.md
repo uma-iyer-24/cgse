@@ -106,11 +106,16 @@
 - **Artifacts.** Checkpoints under `checkpoints/<experiment.name>.pt`. `.gitignore` includes `data/` for local CIFAR downloads.
 - **Configs.** `configs/phase2_cifar.yaml` (default training), `configs/phase2_cifar_full.yaml` (full data, longer run), `configs/phase2_smoke.yaml`, `configs/phase2_smoke_mutate.yaml` (mutation + JSONL).
 
+### 2026-04-02 — Clean slate + sentinel `paper_documentation/runs` (file)
+
+- Stopped all **`train.py`** jobs; removed partial **overnight / duplicate** artifacts from repo-root **`runs/`** (kept **`runs/README.md`** only).
+- Replaced recurring **`paper_documentation/runs/`** directory with a **plain file** `paper_documentation/runs` so tools cannot create that path as a folder.
+
 ### 2026-04-02 — `runs/` at repo root
 
 - **Change.** Training artifacts (CSV, JSONL, `.log`) moved from `paper_documentation/runs/` to **`runs/`** at the repository root so **paper narrative** stays separate from **machine-generated outputs**.
 - **Configs.** All `training.log_csv` and `mutation.log_jsonl` paths now use `runs/...`.
-- **Guard.** `utils/run_paths.normalize_run_artifact_path` + **`train.py`** redirect legacy **`paper_documentation/runs/...` strings in YAML** to **`runs/...`** (with a warning). There is **no** `runs` folder under `paper_documentation/`—only repo-root **`runs/`**. Shell redirects and IDE saves must use **`runs/...`** or they will recreate a stray directory.
+- **Guard (hard).** The path **`paper_documentation/runs`** is a **committed plain file**, not a directory, so `mkdir …/paper_documentation/runs` or “save to `paper_documentation/runs/foo`” **fails** instead of spawning a second layout. **`utils/run_paths.normalize_run_artifact_path`** + **`train.py`** still rewrite legacy **`paper_documentation/runs/...` strings in YAML** to **`runs/...`**. Shell redirects and editors must target **`runs/...`** at repo root.
 
 ### 2026-04-02 — Phase 2 logging hardening (mutation JSONL + full-data config)
 
@@ -127,8 +132,7 @@ Use one row per meaningful run (baseline, ablation, or production experiment). P
 
 | Run ID | Date | Config / command | Notes | Log file |
 |--------|------|-------------------|-------|----------|
-| phase2_smoke | 2026-04-02 | `python train.py --config configs/phase2_smoke.yaml` | CPU, 512 train / 256 test, 2 epochs; first CIFAR baseline. | [`../runs/20260402_phase2_smoke_cpu.log`](../runs/20260402_phase2_smoke_cpu.log) |
-| phase2_smoke_mutate | 2026-04-02 | `python train.py --config configs/phase2_smoke_mutate.yaml` | `edge_widen(delta=16)` after epoch 0; optimizer refreshed. | [`../runs/20260402_phase2_smoke_mutate_cpu.log`](../runs/20260402_phase2_smoke_mutate_cpu.log) |
+| (registry reset) | 2026-04-02 | — | Prior smoke / partial full-CIFAR logs removed from **`runs/`** during clean slate; re-run experiments and add new rows with fresh artifact paths. | — |
 
 ### Excerpt template (copy for each run)
 

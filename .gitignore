@@ -9,6 +9,3 @@ data/
 
 # Phase 2+ experiment checkpoints (large binaries)
 checkpoints/cgse_*.pt
-
-# Do not store training artifacts here — use repo-root runs/ only
-paper_documentation/runs/

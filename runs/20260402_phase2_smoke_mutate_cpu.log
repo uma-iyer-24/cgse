@@ -1,7 +1,0 @@
-# Run: phase2_smoke_mutate (CPU, one widen after epoch 0)
-# Command: python train.py --config configs/phase2_smoke_mutate.yaml
-
-[mutation] Applied edge_widen(delta=16) after epoch 0; optimizer refreshed.
-Epoch 000 | train_loss 2.8588 | train_acc 0.1367 | val_loss 2.2690 | val_acc 0.1641 | mutation=on
-Epoch 001 | train_loss 2.2049 | train_acc 0.2266 | val_loss 2.1710 | val_acc 0.1562 | mutation=on
-Saved checkpoint to checkpoints/cgse_phase2_smoke_mutate.pt

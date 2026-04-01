@@ -1,0 +1,9 @@
+NOT A DIRECTORY — do not remove this file to create a folder here.
+
+All training outputs (metrics CSV, mutation JSONL, console logs) belong in the
+repository-root directory:  runs/
+
+From this file’s location, that is:  ../runs/
+
+If an editor or script tries to write under paper_documentation/runs/..., it will
+fail while this path stays a regular file (that is intentional).
