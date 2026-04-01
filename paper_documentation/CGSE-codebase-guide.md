@@ -51,7 +51,8 @@ cgse/
 ├── training/                # Data loaders, train/eval loop, synthetic data
 ├── utils/                   # checkpoint, seeds, validators, mutation logging, optimizer refresh
 ├── scripts/                 # Standalone mutation / robustness demos (not pytest)
-├── paper_documentation/     # Paper PDFs, implementation log, this guide, run logs
+├── paper_documentation/     # Paper PDFs, implementation log, this guide
+├── runs/                    # Training CSV / JSONL / console logs (repo root)
 ├── checkpoints/             # Saved .pt (some patterns gitignored)
 └── data/                    # Local datasets (gitignored)
 ```
@@ -163,6 +164,8 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 | **`utils/optimizer_utils.py`** | **`refresh_optimizer(old_opt, model)`** — new optimizer over `model.parameters()`, copies optimizer state for **tensor-identical** parameters, fresh state for new tensors. |
 | **`utils/model_info.py`** | **`count_trainable_parameters`**, **`first_linear_node_id`**, **`linear_layer_shapes`** — introspection for logging and mutation targeting. |
 | **`utils/mutation_log.py`** | **`append_mutation_jsonl(path, dict)`** — append one JSON object per line (mutation events). |
+| **`utils/run_paths.py`** | **`normalize_run_artifact_path`** — redirects legacy `paper_documentation/runs/...` strings in config to `runs/...` (warns). |
+| **`paper_documentation/runs`** | **Symlink** → `../runs` so stale paths (IDE, shell `> paper_documentation/runs/...`) still hit repo-root **`runs/`**. |
 
 ---
 
@@ -195,7 +198,7 @@ Runnable demos / stress tests (invoke with `python scripts/<name>.py` from repo 
 |------|------|
 | **`data/`** | CIFAR download cache — **gitignored** (see root `.gitignore`). |
 | **`checkpoints/`** | Training outputs; **`checkpoints/cgse_*.pt`** pattern gitignored; older **`phase0.pt`** may still be tracked from earlier commits. |
-| **`paper_documentation/runs/`** | CSV, JSONL, `.log` files — **committed** when you want a paper trail (can grow; consider rotating for very large runs). |
+| **`runs/`** (repo root) | CSV, JSONL, `.log` files — **committed** when you want a paper trail (can grow; consider rotating for very large runs). See **`runs/README.md`**. |
 | **`__pycache__/`, `.ipynb_checkpoints/`** | Should not be committed — in `.gitignore`. |
 
 ---
@@ -241,5 +244,6 @@ flowchart TD
 | Date | Change |
 |------|--------|
 | 2026-04-02 | Initial guide: Phase 1–2 layout, configs, scripts, placeholders. |
+| 2026-04-02 | **`runs/`** moved to **repo root** (was under `paper_documentation/`); configs point to `runs/...`. |
 
 *Append a row whenever this guide is meaningfully updated.*

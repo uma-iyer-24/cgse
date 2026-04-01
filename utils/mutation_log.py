@@ -3,10 +3,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from utils.run_paths import normalize_run_artifact_path
+
 
 def append_mutation_jsonl(path: str | Path, event: Mapping[str, Any]) -> None:
     """Append one JSON object per line (JSONL), for paper / plotting."""
-    path = Path(path)
+    path = Path(normalize_run_artifact_path(str(path)))
     path.parent.mkdir(parents=True, exist_ok=True)
     row = dict(event)
     row.setdefault(

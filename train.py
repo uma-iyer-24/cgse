@@ -22,6 +22,7 @@ from utils.model_info import (
 from utils.mutation_log import append_mutation_jsonl
 from utils.optimizer_utils import refresh_optimizer
 from utils.repro import set_seed
+from utils.run_paths import normalize_run_artifact_path
 
 
 def load_config(path):
@@ -108,9 +109,9 @@ def main():
     once_after = mutation_cfg.get("once_after_epoch")
     widen_delta = int(mutation_cfg.get("widen_delta", 32))
     mutation_applied = False
-    mutation_log_jsonl = mutation_cfg.get("log_jsonl")
+    mutation_log_jsonl = normalize_run_artifact_path(mutation_cfg.get("log_jsonl"))
 
-    log_csv = train_cfg.get("log_csv")
+    log_csv = normalize_run_artifact_path(train_cfg.get("log_csv"))
     run_ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     experiment_name = cfg["experiment"]["name"]
 

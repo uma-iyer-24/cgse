@@ -8,7 +8,7 @@
 
 - Dates use **ISO 8601** where relevant (`2026-04-02`).
 - Code paths are relative to the repository root unless stated otherwise.
-- Training commands are copy-pasteable; full console output is archived under [`runs/`](runs/) and summarized here.
+- Training commands are copy-pasteable; metrics and logs are under **[`runs/`](../runs/)** (repo root); excerpts are summarized here.
 - When the **layout of the code** changes (new packages, renamed modules, new entry points), update **[`CGSE-codebase-guide.md`](CGSE-codebase-guide.md)** in the same breath so it stays the single file-by-file reference.
 
 ---
@@ -44,7 +44,7 @@
 3. **Honest training loop** — Each epoch reports **training loss/accuracy** and **test-set loss/accuracy** (not just one fake batch).
 4. **Config-driven runs** — Settings live in YAML: how long to train, batch size, subset size, device, and so on. **`train.py`** reads that file. The default is the Phase 2 CIFAR setup; the old **random-data MLP** is still available via **`configs/base.yaml`**.
 5. **Optional mutation during training** — In the config you can say: **after epoch X, widen the first linear layer once** and **refresh the optimizer** so training continues with the new parameters. That connects the old **mutation scripts** to **mutation inside real training**.
-6. **Logging for the paper** — Metrics append to a **CSV** (including **parameter count** each epoch). Each **mutation** can append one **JSON line** (`mutation.log_jsonl`) with layer id, widths before/after, and param totals—good for timelines and figures. Short **log excerpts** also live under **`paper_documentation/runs/`**, and this file records **what changed and why**.
+6. **Logging for the paper** — Metrics append to a **CSV** (including **parameter count** each epoch). Each **mutation** can append one **JSON line** (`mutation.log_jsonl`) with layer id, widths before/after, and param totals—good for timelines and figures. Artifacts live in **`runs/`** at the repo root (see [`runs/README.md`](../runs/README.md)); this file records **what changed and why**.
 7. **Housekeeping** — **`requirements.txt`** lists dependencies; **`data/`** is git-ignored so large downloads are not committed.
 
 **In one sentence:** We moved from “test structural edits on a toy net” to **train a small CIFAR student for real, log metrics, and optionally apply one widen mid-training**—with a written trail for Methods and results.
@@ -73,7 +73,8 @@
 | `utils/mutation_log.py` | Append **JSONL** mutation events. |
 | `requirements.txt` | `torch`, `torchvision`, `PyYAML`. |
 | `scripts/` | Validation and stress tests (`validate_mutation`, `test_*`). |
-| `paper_documentation/` | This log, PDFs, and archived run logs under `runs/`. |
+| `paper_documentation/` | This log, PDFs, long-form project docs (no training artifacts). |
+| `runs/` | Training CSV / JSONL / `.log` outputs (repo root). |
 
 ---
 
@@ -92,7 +93,7 @@
 
 ### 2026-04-02 — Documentation scaffold
 
-- **Added** this file and `paper_documentation/README.md`, plus `paper_documentation/runs/README.md` for raw log storage.
+- **Added** this file and `paper_documentation/README.md`, plus `runs/README.md` for artifact layout (under repo root).
 - **Rationale.** Separate long-form PDFs (`project-doc.pdf`, `phase-plan-overview.pdf`) from an **append-only implementation record** suitable for Methods/Reproducibility.
 
 ### 2026-04-02 — Phase 2 (student training on CIFAR-10)
@@ -104,6 +105,12 @@
 - **Mutation (Phase 2.4 slice).** YAML block `mutation`: `enabled`, `once_after_epoch`, `widen_delta`, optional **`log_jsonl`** — after the given epoch, **`edge_widen`** on the resolved **first Linear** (explicit `target_node_id` path) + **`refresh_optimizer`**. JSONL records `target_node_id`, `delta`, linear in/out before/after, `num_parameters_before` / `num_parameters_after`, `run_id`, `epoch_completed`.
 - **Artifacts.** Checkpoints under `checkpoints/<experiment.name>.pt`. `.gitignore` includes `data/` for local CIFAR downloads.
 - **Configs.** `configs/phase2_cifar.yaml` (default training), `configs/phase2_cifar_full.yaml` (full data, longer run), `configs/phase2_smoke.yaml`, `configs/phase2_smoke_mutate.yaml` (mutation + JSONL).
+
+### 2026-04-02 — `runs/` at repo root
+
+- **Change.** Training artifacts (CSV, JSONL, `.log`) moved from `paper_documentation/runs/` to **`runs/`** at the repository root so **paper narrative** stays separate from **machine-generated outputs**.
+- **Configs.** All `training.log_csv` and `mutation.log_jsonl` paths now use `runs/...`.
+- **Guard.** `utils/run_paths.normalize_run_artifact_path` + **`train.py`** redirect legacy `paper_documentation/runs/...` strings in YAML to **`runs/...`**. Additionally, **`paper_documentation/runs`** is a **symlink** to **`../runs`**, so IDE tabs, shell redirects, or notebooks that still use the old path write into the **same** repo-root `runs/` directory (no duplicate real folder).
 
 ### 2026-04-02 — Phase 2 logging hardening (mutation JSONL + full-data config)
 
@@ -120,8 +127,8 @@ Use one row per meaningful run (baseline, ablation, or production experiment). P
 
 | Run ID | Date | Config / command | Notes | Log file |
 |--------|------|-------------------|-------|----------|
-| phase2_smoke | 2026-04-02 | `python train.py --config configs/phase2_smoke.yaml` | CPU, 512 train / 256 test, 2 epochs; first CIFAR baseline. | [`runs/20260402_phase2_smoke_cpu.log`](runs/20260402_phase2_smoke_cpu.log) |
-| phase2_smoke_mutate | 2026-04-02 | `python train.py --config configs/phase2_smoke_mutate.yaml` | `edge_widen(delta=16)` after epoch 0; optimizer refreshed. | [`runs/20260402_phase2_smoke_mutate_cpu.log`](runs/20260402_phase2_smoke_mutate_cpu.log) |
+| phase2_smoke | 2026-04-02 | `python train.py --config configs/phase2_smoke.yaml` | CPU, 512 train / 256 test, 2 epochs; first CIFAR baseline. | [`../runs/20260402_phase2_smoke_cpu.log`](../runs/20260402_phase2_smoke_cpu.log) |
+| phase2_smoke_mutate | 2026-04-02 | `python train.py --config configs/phase2_smoke_mutate.yaml` | `edge_widen(delta=16)` after epoch 0; optimizer refreshed. | [`../runs/20260402_phase2_smoke_mutate_cpu.log`](../runs/20260402_phase2_smoke_mutate_cpu.log) |
 
 ### Excerpt template (copy for each run)
 
@@ -156,7 +163,7 @@ Items to fill as experiments land:
 - [x] **Student architecture:** `CifarGraphNet` (document param count in paper from `sum(p.numel() for p in model.parameters())`).
 - [ ] **Mutation schedule:** still **epoch-triggered** in config; replace with **signal-driven** when CGSE scoring lands.
 - [x] **Structured mutation log:** JSONL schema via `mutation.log_jsonl` (see `utils/mutation_log.py`).
-- [ ] **Full-data baseline:** run `configs/phase2_cifar_full.yaml` on GPU/MPS; archive CSV + console log in `runs/`.
+- [ ] **Full-data baseline:** run `configs/phase2_cifar_full.yaml` on GPU/MPS; archive CSV + console log under repo-root **`runs/`**.
 - [ ] Comparison table: fixed vs random mutation vs teacher (Phase 3) vs CGSE (Phase 7).
 - [ ] Seeds, wall-clock, and hardware for each reported result.
 

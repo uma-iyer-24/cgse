@@ -1,0 +1,7 @@
+Epoch 000 | train_loss 1.3653 | train_acc 0.5042 | val_loss 1.0504 | val_acc 0.6240
+Epoch 001 | train_loss 1.0149 | train_acc 0.6402 | val_loss 0.9911 | val_acc 0.6524
+Epoch 002 | train_loss 0.8974 | train_acc 0.6811 | val_loss 0.9212 | val_acc 0.6814
+Fatal Python error: init_sys_streams: can't initialize sys standard streams
+Python runtime state: core initialized
+OSError: [Errno 9] Bad file descript/opt/anaconda3/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: /opt/anaconda3/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 11 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

@@ -17,7 +17,7 @@ training:
   weight_decay: 0.0005
   seed: 42
   # Optional: append one CSV row per epoch (created automatically)
-  log_csv: paper_documentation/runs/phase2_training_metrics.csv
+  log_csv: runs/phase2_training_metrics.csv
 
 model:
   name: cifar_cnn
