@@ -110,7 +110,7 @@
 
 - **Change.** Training artifacts (CSV, JSONL, `.log`) moved from `paper_documentation/runs/` to **`runs/`** at the repository root so **paper narrative** stays separate from **machine-generated outputs**.
 - **Configs.** All `training.log_csv` and `mutation.log_jsonl` paths now use `runs/...`.
-- **Guard.** `utils/run_paths.normalize_run_artifact_path` + **`train.py`** redirect legacy `paper_documentation/runs/...` strings in YAML to **`runs/...`**. Additionally, **`paper_documentation/runs`** is a **symlink** to **`../runs`**, so IDE tabs, shell redirects, or notebooks that still use the old path write into the **same** repo-root `runs/` directory (no duplicate real folder).
+- **Guard.** `utils/run_paths.normalize_run_artifact_path` + **`train.py`** redirect legacy **`paper_documentation/runs/...` strings in YAML** to **`runs/...`** (with a warning). There is **no** `runs` folder under `paper_documentation/`—only repo-root **`runs/`**. Shell redirects and IDE saves must use **`runs/...`** or they will recreate a stray directory.
 
 ### 2026-04-02 — Phase 2 logging hardening (mutation JSONL + full-data config)
 

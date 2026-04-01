@@ -165,7 +165,6 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 | **`utils/model_info.py`** | **`count_trainable_parameters`**, **`first_linear_node_id`**, **`linear_layer_shapes`** — introspection for logging and mutation targeting. |
 | **`utils/mutation_log.py`** | **`append_mutation_jsonl(path, dict)`** — append one JSON object per line (mutation events). |
 | **`utils/run_paths.py`** | **`normalize_run_artifact_path`** — redirects legacy `paper_documentation/runs/...` strings in config to `runs/...` (warns). |
-| **`paper_documentation/runs`** | **Symlink** → `../runs` so stale paths (IDE, shell `> paper_documentation/runs/...`) still hit repo-root **`runs/`**. |
 
 ---
 
@@ -244,6 +243,6 @@ flowchart TD
 | Date | Change |
 |------|--------|
 | 2026-04-02 | Initial guide: Phase 1–2 layout, configs, scripts, placeholders. |
-| 2026-04-02 | **`runs/`** moved to **repo root** (was under `paper_documentation/`); configs point to `runs/...`. |
+| 2026-04-02 | **`runs/`** at **repo root** only; no `runs` under `paper_documentation/`. Legacy YAML paths rewritten in code. |
 
 *Append a row whenever this guide is meaningfully updated.*

@@ -9,7 +9,7 @@ This folder holds materials for the CGSE paper and reproducibility.
 | [`CGSE-implementation-log.md`](CGSE-implementation-log.md) | **Living implementation log**: code changes, decisions, configs, and training run records (for paper Methods / Appendix). Includes a **[plain-language Phase 2](CGSE-implementation-log.md#plain-language-phase-2)** summary (non-technical “what we built and why”). |
 | [`CGSE-codebase-guide.md`](CGSE-codebase-guide.md) | **Codebase map (file-by-file)**: architecture, execution paths, module roles, configs, and maintenance notes—read alongside the source for a full in-depth understanding. **Update this when you add or rename code.** |
 
-Training **metrics, JSONL, and console logs** live in **[`runs/`](../runs/)** at the **repo root**. For backward compatibility, **`paper_documentation/runs`** is a **symlink** to that folder—old paths and open editor tabs still resolve to the same files; prefer opening paths under **`runs/`** in the IDE.
+Training **metrics, JSONL, and console logs** live only in **[`runs/`](../runs/)** at the **repo root**—not under `paper_documentation/`. Close any editor tabs that still point at an old `paper_documentation/runs/...` path and open the same file under **`runs/`** instead.
 
 ### Phase 2 training (quick reference)
 
