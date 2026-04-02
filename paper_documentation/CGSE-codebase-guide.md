@@ -37,6 +37,8 @@ CGSE’s code is organized around three ideas:
 
 Phase 2 adds **real data (CIFAR-10)** and **logging** (CSV per epoch, JSONL per mutation). Later phases (teacher, critic) will attach new **controllers** without replacing the graph/mutation core—update this doc when those land.
 
+**Planned backbone progression.** The current student in Phase 2 is a **small CIFAR CNN** (`CifarGraphNet`) because it is simple, fast, and makes mutation plumbing easy to validate. For paper-quality comparisons and later phases, the intended direction is to move the student backbone toward a **ResNet-style model** (still on CIFAR first), while keeping the same mutation/controller interfaces. When that switch happens, update this document’s **Models** and **Execution paths** sections accordingly.
+
 ---
 
 ## 2. Repository tree (top level)

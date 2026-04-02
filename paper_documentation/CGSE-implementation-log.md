@@ -124,6 +124,19 @@
 - **`train.py`** — CSV schema stabilized; mutation path logs **params** before/after widen; optional **`mutation.log_jsonl`**.
 - **`configs/phase2_cifar_full.yaml`** — `subset_train` / `subset_test` **null**, 50 epochs default (tune as needed for the paper).
 
+### 2026-04-02 — Phase 2 baseline result (full CIFAR-10, no mutation)
+
+- **What we trained.** `CifarGraphNet` (small CIFAR CNN implemented as a sequential `GraphModule`) on **full CIFAR-10** (50k train / 10k test) for **50 epochs**.
+- **Supervision.** Standard cross-entropy only (**no teacher / no distillation**).
+- **Mutations.** **Disabled** (`mutation.enabled: false`) → this run is the **fixed-architecture baseline** we will compare against later (mutation on, teacher-guided, CGSE).
+- **Key metrics (epoch 49).** `train_acc ≈ 0.8663`, `test_acc (val_acc) ≈ 0.8454`, `num_parameters = 620,810`.
+- **Artifacts.**
+  - CSV: `runs/phase2_cifar_full_metrics.csv`
+  - Console log: `runs/train_phase2_cifar_full.log`
+  - Checkpoint saved locally: `checkpoints/cgse_phase2_cifar_full.pt` (large binary; intentionally not committed)
+
+**Interpretation.** This establishes that the Phase 2 training pipeline is correct on real data and provides a reproducible **baseline accuracy curve**; any later “self-evolution” gains must be measured relative to this run under matched data/compute settings.
+
 ---
 
 ## 5. Training runs registry
@@ -132,7 +145,7 @@ Use one row per meaningful run (baseline, ablation, or production experiment). P
 
 | Run ID | Date | Config / command | Notes | Log file |
 |--------|------|-------------------|-------|----------|
-| (registry reset) | 2026-04-02 | — | Prior smoke / partial full-CIFAR logs removed from **`runs/`** during clean slate; re-run experiments and add new rows with fresh artifact paths. | — |
+| phase2_cifar_full_baseline | 2026-04-02 | `python train.py --config configs/phase2_cifar_full.yaml` | Full CIFAR-10, 50 epochs, mutation off. Final `val_acc ≈ 0.8454`. | `runs/train_phase2_cifar_full.log` |
 
 ### Excerpt template (copy for each run)
 
@@ -167,7 +180,7 @@ Items to fill as experiments land:
 - [x] **Student architecture:** `CifarGraphNet` (document param count in paper from `sum(p.numel() for p in model.parameters())`).
 - [ ] **Mutation schedule:** still **epoch-triggered** in config; replace with **signal-driven** when CGSE scoring lands.
 - [x] **Structured mutation log:** JSONL schema via `mutation.log_jsonl` (see `utils/mutation_log.py`).
-- [ ] **Full-data baseline:** run `configs/phase2_cifar_full.yaml` on GPU/MPS; archive CSV + console log under repo-root **`runs/`**.
+- [x] **Full-data baseline:** `configs/phase2_cifar_full.yaml` completed; artifacts in repo-root **`runs/`**.
 - [ ] Comparison table: fixed vs random mutation vs teacher (Phase 3) vs CGSE (Phase 7).
 - [ ] Seeds, wall-clock, and hardware for each reported result.
 
