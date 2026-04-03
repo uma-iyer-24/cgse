@@ -60,14 +60,16 @@ class GraphModule(nn.Module):
     
         old_out = node.out_features
         new_out = old_out + extra_out
-    
-        # --- widen selected layer ---
-        new_layer = nn.Linear(node.in_features, new_out)
-    
+
+        # --- widen selected layer (match device/dtype for MPS/CUDA) ---
+        new_layer = nn.Linear(node.in_features, new_out).to(
+            device=node.weight.device, dtype=node.weight.dtype
+        )
+
         with torch.no_grad():
             new_layer.weight[:old_out] = node.weight
             new_layer.bias[:old_out] = node.bias
-    
+
         self.nodes[node_id] = new_layer
     
         # --- propagate to ALL downstream Linear layers ---
@@ -81,14 +83,16 @@ class GraphModule(nn.Module):
             layer = self.nodes[next_id]
     
             if isinstance(layer, nn.Linear):
-    
-                new_next = nn.Linear(prev_out, layer.out_features)
-    
+
+                new_next = nn.Linear(prev_out, layer.out_features).to(
+                    device=layer.weight.device, dtype=layer.weight.dtype
+                )
+
                 with torch.no_grad():
                     copy_in = min(layer.in_features, prev_out)
                     new_next.weight[:, :copy_in] = layer.weight[:, :copy_in]
-                    new_next.bias = layer.bias
-    
+                    new_next.bias.copy_(layer.bias)
+
                 self.nodes[next_id] = new_next
     
                 prev_out = new_next.out_features

@@ -40,8 +40,10 @@ def edge_split(model, target_node_id=None):
     # ✅ infer TRUE incoming dimension
     in_f = _infer_input_dim(model, idx)
 
-    # identity layer with correct dimension
-    new_layer = nn.Linear(in_f, in_f)
+    # identity layer with correct dimension (same device/dtype as target for MPS/CUDA)
+    new_layer = nn.Linear(in_f, in_f).to(
+        device=old_layer.weight.device, dtype=old_layer.weight.dtype
+    )
     new_id = f"{target_node_id}_split_{len(model.execution_order)}"
 
     with torch.no_grad():
