@@ -2,9 +2,9 @@
 
 **CGSE** (*Critic-Guided Self-Evolution*) is a research codebase for training **student networks whose architecture can change during optimization**—for example, widening fully connected layers or inserting depth—while keeping training numerically stable through **graph validation** and **optimizer state handling**.
 
-The **scientific story, formal definitions, and literature positioning** of CGSE live in **[`paper_documentation/project-doc.pdf`](paper_documentation/project-doc.pdf)**. That document contrasts **neural architecture search (NAS)** with **self-evolving / SEArch-style** training, situates **teacher-guided** structural methods (and related *-Search* variants), and spells out **what the critic is for**, **how CGSE differs from NAS and from teacher-only oracles**, and **risks / limitations** (e.g. critic optimization, generalization, growth-only bias). **Read `project-doc.pdf` alongside this README** if you need citations-ready framing.
+Long-form narrative PDFs live under `paper_documentation/` alongside Markdown logs; the excerpts below summarize the **research intent** distilled from that manuscript.
 
-**What you can run in this repository today** is a **fully implemented mutation substrate** and **supervised CIFAR-10 training** with optional **YAML-scheduled** widening and **structured logging**. The **learned critic** and full **closed-loop CGSE controller** described in the PDF are **not trained here yet**; they are the target of later implementation phases (see **[`phase-plan-overview.pdf`](paper_documentation/phase-plan-overview.pdf)**).
+**What you can run in this repository today** is a **fully implemented mutation substrate** and **supervised CIFAR-10 training** with optional **YAML-scheduled** widening and **structured logging**. The **learned critic** and full **closed-loop CGSE controller** described below are **not trained here yet**; they are the target of later implementation phases (roadmap PDF in the same folder).
 
 If you have **no prior context**, read this file first, then the **[detailed phase walkthrough](paper_documentation/CGSE-detailed-phase-walkthrough.md)** for a step-by-step narrative of design choices and file locations.
 
@@ -12,23 +12,49 @@ If you have **no prior context**, read this file first, then the **[detailed pha
 
 ## Research context: neural architecture, SEArch, the critic, and the CGSE goal
 
+The following quotes and summaries are taken from the project’s internal research manuscript (working document, `paper_documentation/`).
+
 ### Neural architecture search (NAS) vs in-training structural change
 
-**Neural architecture search** usually treats **architecture choice** as a **search problem** over a discrete or relaxed space: policies, evolution, one-shot supernets, or similar. Training the **weights** of a fixed candidate is one step; **selecting** the candidate is another. The **`project-doc.pdf`** narrative walks through this **NAS workflow** and contrasts it with approaches where the **same training run** continually **edits structure**—sometimes grouped under **self-evolving models** or **SEArch**-style ideas (the PDF uses that vocabulary explicitly).
+**Neural architecture search** usually treats **architecture choice** as an outer **search** over candidates (RL, evolution, weight-sharing supernets, etc.): pick a structure, train weights, score, repeat. **Self-evolving architecture (SEArch)** instead stresses **one training trajectory** in which **connectivity or capacity can change online**—closer in spirit to “the model edits itself while it learns.”
 
-**CGSE is not “just another NAS outer loop.”** The project document argues for a **fundamentally different setting**: **structural updates** are **coupled** to ordinary optimization as a **closed-loop** process—architecture is **adapted online** from **internal training state**, not only from a separate search controller that picks a graph and then trains it to convergence. See **`project-doc.pdf`** sections on **why this differs from NAS** and on **CGSE as a closed-loop control system** for the full argument.
+The manuscript contrasts NAS-style search with **continuous structural self-evolution** tied to ordinary SGD:
 
-### SEArch, teachers, and where CGSE sits
+> Unlike neural architecture search, our method performs continuous, low-overhead **architectural self-evolution during training**, guided purely by **internal learning dynamics**.
 
-The **`project-doc.pdf`** surveys **teacher-involved structural search** patterns (e.g. *Teacher as Critic, Not Oracle (TCNO-Search)*, committee-of-teachers, curriculum cascades, and related variants). Those designs stress **who provides supervision or approval** when a student’s graph changes.
+**CGSE** is positioned as **not** “evaluate many architectures in an outer loop,” but as **closed-loop control**: architecture updates react to **state drawn from the same run** (loss curvature, gradient behavior, representation diagnostics, resource use), rather than only to an external search policy.
 
-**CGSE’s intended role** is to add a **critic**—a module that **scores internal signals** (activations, losses, gradients, bottleneck structure—exact features are part of the research design in the PDF)—to decide **whether, where, and how** to apply **structural mutations** under a **budget**. The critic is **not** meant to replace the ordinary training loss by default; rather, it **guides discrete structural actions** while SGD continues on weights. The document also discusses **hybrid** notions (e.g. teacher-guided critic-evolved variants) and **training phases** where **teacher vs critic** emphasis can shift over time; those are **research targets** for the codebase roadmap, not fully implemented behaviors in the current `train.py` path.
+### Formal view: critic and structural updates
 
-### What the critic is supposed to do (goal of CGSE)
+The document states that **CGSE treats architecture evolution as a closed-loop control system driven by internally learned critics, not external signals**. A critic maps a **state** (training dynamics, representation diagnostics, resource usage, constraint signals) to **scores**; a **structural update rule** maps those scores to **discrete graph edits** (e.g. localized widening or splitting). **Weight updates** follow the ordinary task loss; the critic is trained with a **meta-objective** aimed at **system-level improvement**, not label imitation.
 
-In the **`project-doc.pdf`** framing, the **critic** answers **structural** questions that raw loss does not: e.g. **which edge or layer is a bottleneck**, whether a proposed **widen / deepen** is **worth the parameter cost**, and whether an edit **destabilizes** training. Formal objectives, **structural update rules**, and comparisons to **teacher-only** or **random mutation** baselines are specified there.
+On the distinction from teacher–student guidance:
 
-**In this repository**, the critic is **prepared but not implemented**: see the placeholder **`critics/critic.py`**. Current experiments use **hand-written schedules** in YAML (e.g. “widen once after epoch *k*”) so that **safe graph surgery + logging + baselines** exist **before** the critic’s optimization loop is added.
+> The critic **does not say what to predict**, only whether the system is **structurally underperforming**.
+
+Teacher–student is summarized as **external reference, fixed target, imitative signal**; CGSE as **self-referential evaluation of internal dynamics** and **no external oracle** for structural decisions—though the same manuscript later discusses **hybrids** (teacher safety + critic-driven growth) as a pragmatic design.
+
+### Lay intuition: learner vs critic
+
+The manuscript poses the motivating question:
+
+> Can a model tell, by looking at **its own training behavior**, whether its **structure** is wrong?
+
+It then separates **two roles**:
+
+> **CGSE separates two roles:** **Learner:** updates weights as usual. **Critic:** watches how learning is going. The critic doesn’t know labels. It doesn’t know the “right answer.” It only knows things like: learning has stalled, representations are collapsing, gradients are unstable, capacity is underused. When those signals cross certain thresholds, the architecture adapts.
+
+The same section emphasizes:
+
+> **Architecture change is triggered by how learning feels**, not by what the model predicts. That’s the conceptual leap.
+
+### Relation to teacher-as-critic (TCNO) and “condensed” CGSE
+
+The manuscript groups several teacher-centric *-Search* ideas and describes **Teacher as Critic, Not Oracle (TCNO-Search)** as a setting where the teacher **does not supply targets** but **critiques** (e.g. bottleneck severity). **CGSE** is presented as a **condensed** direction that **absorbs** ideas from TCNO and teacher-free self-referential variants, with stated **core novelty**: **no imitation**, **critic-based structural signals**, and **autonomous architecture growth**—still subject in practice to engineering choices (which statistics enter the critic, which operators are allowed).
+
+### Where this repository stands
+
+**In code today**, the **critic module is not trained**; see the placeholder **`critics/critic.py`**. Experiments use **YAML schedules** (e.g. widen once after epoch *k*) so that **safe mutations, metrics, and baselines** exist before the full critic loop is implemented. **Knowledge distillation**, **teacher networks**, and **TGCE-style** staged teacher/critic control appear in the manuscript as **design options**, not as defaults in `train.py`.
 
 ---
 
@@ -55,7 +81,7 @@ CGSE implements that substrate in PyTorch and connects it to a **real vision ben
 | **CIFAR-10 training** | Active | `CifarGraphNet` (small CNN as a graph); train/test metrics; YAML configs. |
 | **Experiment logging** | Active | Per-epoch CSV (`training.log_csv`); optional JSONL per mutation event (`mutation.log_jsonl`). |
 | **In-loop mutation (Phase 2)** | Active | Config-driven: e.g. widen once after a chosen epoch, then continue training. |
-| **Teacher / distillation / learned critic–controller** | Not in code yet | Design and baselines in **[`project-doc.pdf`](paper_documentation/project-doc.pdf)**; stub **`critics/critic.py`**. |
+| **Teacher / distillation / learned critic–controller** | Not in code yet | Described in the manuscript PDFs under `paper_documentation/`; stub **`critics/critic.py`**. |
 | **Pytest suite** | Minimal | Demos and stress scripts under `scripts/`; `tests/` reserved for automated tests. |
 
 See **[Phase status](paper_documentation/CGSE-implementation-log.md#3-phase-status)** in the implementation log for a compact roadmap table.
@@ -153,8 +179,8 @@ For artifact conventions and the distinction between **`runs/`** (machine output
 
 | Document | Purpose |
 |----------|---------|
-| [`paper_documentation/project-doc.pdf`](paper_documentation/project-doc.pdf) | **Primary narrative:** NAS vs SEArch, CGSE formalism, critic’s role, teacher baselines, structural update rules, risks, abstract framing. |
-| [`paper_documentation/phase-plan-overview.pdf`](paper_documentation/phase-plan-overview.pdf) | Phased roadmap (Phases 0–8). |
+| `paper_documentation/project-doc.pdf` | Full research narrative (printable): NAS vs SEArch, CGSE variants, critic formalism, teacher baselines, risks—excerpts summarized above. |
+| `paper_documentation/phase-plan-overview.pdf` | Phased roadmap (Phases 0–8). |
 | [`paper_documentation/CGSE-implementation-log.md`](paper_documentation/CGSE-implementation-log.md) | Living changelog, run registry, design decisions, paper checklist. |
 | [`paper_documentation/CGSE-codebase-guide.md`](paper_documentation/CGSE-codebase-guide.md) | File-by-file map and execution paths. |
 | [`paper_documentation/CGSE-detailed-phase-walkthrough.md`](paper_documentation/CGSE-detailed-phase-walkthrough.md) | Long-form English walkthrough: goals, steps, rationale, file pointers. |
@@ -171,15 +197,15 @@ For artifact conventions and the distinction between **`runs/`** (machine output
 ## Limitations (read before citing numbers)
 
 - Reported accuracies depend on **config, seed, hardware, and PyTorch version**. Always cite the **exact YAML**, **commit hash**, and **environment** used.
-- The current **mutation policy** in Phase 2 is **hand-scheduled in YAML** (e.g. one widen after epoch *k*), not the **critic-guided** policy in **`project-doc.pdf`**.
-- Open **research** caveats for the full CGSE story (critic generalization, secondary optimization, growth-only bias, etc.) are discussed in **`project-doc.pdf`**; do not assume this repo already resolves them.
+- The current **mutation policy** in Phase 2 is **hand-scheduled in YAML** (e.g. one widen after epoch *k*), not the **critic-guided** policy described in the research manuscript.
+- The manuscript itself records **open critiques** of the CGSE idea: e.g. the critic’s intelligence is still **designed** (choice of statistics, operator set, meta-loss); the critic may collapse to a **heuristic** without causal guarantees; **growth-only** bias if removal is weak; and **optimization health** need not equal **task generalization**. This codebase does **not** settle those questions empirically yet.
 - The CIFAR student is a **small CNN** chosen for clarity and mutation plumbing; scaling to stronger backbones (e.g. ResNet-style) is a **planned** extension described in the codebase guide.
 
 ---
 
 ## Contributing and contact
 
-Use issues or pull requests for bug reports and improvements. For **paper-related** questions, refer to **`project-doc.pdf`** and the implementation log so terminology stays aligned with the manuscript.
+Use issues or pull requests for bug reports and improvements. For **paper-related** terminology, keep the implementation log and the PDFs under `paper_documentation/` aligned.
 
 ---
 
