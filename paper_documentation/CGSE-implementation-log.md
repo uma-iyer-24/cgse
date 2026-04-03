@@ -137,6 +137,14 @@
 
 **Interpretation.** This establishes that the Phase 2 training pipeline is correct on real data and provides a reproducible **baseline accuracy curve**; any later “self-evolution” gains must be measured relative to this run under matched data/compute settings.
 
+### 2026-04-02 — Phase 2 mutation ablation config (full CIFAR)
+
+- **Added** `configs/phase2_cifar_full_mutate.yaml`: same data/hyperparams/seed as the baseline, but **`mutation.enabled: true`** with **`once_after_epoch: 10`**, **`widen_delta: 32`**, **`edge_widen` on `fc1`**, optimizer refresh, and artifacts:
+  - `runs/phase2_cifar_full_mutate_metrics.csv`
+  - `runs/phase2_cifar_full_mutate_mutations.jsonl`
+  - checkpoint `checkpoints/cgse_phase2_cifar_full_mutate.pt` (local, not committed)
+- **Compare** final accuracy and training stability vs `runs/phase2_cifar_full_metrics.csv` (mutation off).
+
 ---
 
 ## 5. Training runs registry
@@ -146,6 +154,7 @@ Use one row per meaningful run (baseline, ablation, or production experiment). P
 | Run ID | Date | Config / command | Notes | Log file |
 |--------|------|-------------------|-------|----------|
 | phase2_cifar_full_baseline | 2026-04-02 | `python train.py --config configs/phase2_cifar_full.yaml` | Full CIFAR-10, 50 epochs, mutation off. Final `val_acc ≈ 0.8454`. | `runs/train_phase2_cifar_full.log` |
+| phase2_cifar_full_mutate | — | `python train.py --config configs/phase2_cifar_full_mutate.yaml` | Same as baseline + one widen after epoch 10. **Run locally**; then add console log path and final metrics here. | `runs/phase2_cifar_full_mutate_metrics.csv` (CSV); capture `train_*.log` if you redirect stdout |
 
 ### Excerpt template (copy for each run)
 

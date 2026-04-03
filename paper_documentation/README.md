@@ -23,6 +23,8 @@ python train.py --config configs/phase2_smoke.yaml
 python train.py --config configs/phase2_smoke_mutate.yaml
 # Full CIFAR-10 (50k/10k), longer training — paper baseline
 python train.py --config configs/phase2_cifar_full.yaml
+# Same as baseline + one edge_widen after epoch 10 (compare metrics CSVs)
+python train.py --config configs/phase2_cifar_full_mutate.yaml
 ```
 - **Synthetic / Phase-0 MLP** (no CIFAR): `python train.py --config configs/base.yaml`
 - Per-epoch metrics append to the CSV path in each YAML (`training.log_csv`); includes **`num_parameters`** each epoch.

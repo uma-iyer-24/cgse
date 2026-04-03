@@ -91,6 +91,7 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 | **`configs/base.yaml`** | Phase-0 style: synthetic data, small MLP (`StudentNet`), `device`, few epochs. No `model.name` → MLP path in `train.py`. |
 | **`configs/phase2_cifar.yaml`** | Default Phase 2: CIFAR subset, `CifarGraphNet`, `training.log_csv`, optional `mutation` (often off for baseline). |
 | **`configs/phase2_cifar_full.yaml`** | Full 50k/10k CIFAR, more epochs — paper baseline runs. |
+| **`configs/phase2_cifar_full_mutate.yaml`** | Same as full baseline + **one** `edge_widen` after epoch 10; separate CSV/JSONL/checkpoint name. |
 | **`configs/phase2_smoke.yaml`** | Tiny subset, CPU-friendly smoke test. |
 | **`configs/phase2_smoke_mutate.yaml`** | Smoke + one widen + mutation JSONL path. |
 
