@@ -1,9 +1,34 @@
+from typing import Optional
+
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 
-def train_one_epoch(model, optimizer, device, loader):
+def kd_distillation_loss(student_logits, teacher_logits, temperature: float) -> torch.Tensor:
+    """KL(student || teacher) on softened distributions, scaled by T^2 (standard KD)."""
+    t = float(temperature)
+    s_logp = F.log_softmax(student_logits / t, dim=-1)
+    p_t = F.softmax(teacher_logits / t, dim=-1)
+    return F.kl_div(s_logp, p_t, reduction="batchmean") * (t * t)
+
+
+def train_one_epoch(
+    model,
+    optimizer,
+    device,
+    loader,
+    teacher: Optional[nn.Module] = None,
+    kd_temperature: float = 4.0,
+    kd_alpha: float = 0.5,
+):
+    """
+    If `teacher` is set, loss = (1 - kd_alpha) * CE + kd_alpha * KD (student logits vs frozen teacher).
+    """
     model.train()
+    if teacher is not None:
+        teacher.eval()
+
     total_loss = 0.0
     correct = 0
     total = 0
@@ -12,7 +37,15 @@ def train_one_epoch(model, optimizer, device, loader):
         y = y.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
         logits = model(x)
-        loss = F.cross_entropy(logits, y)
+        ce = F.cross_entropy(logits, y)
+        if teacher is not None:
+            with torch.no_grad():
+                t_logits = teacher(x)
+            kd = kd_distillation_loss(logits, t_logits, kd_temperature)
+            alpha = float(kd_alpha)
+            loss = (1.0 - alpha) * ce + alpha * kd
+        else:
+            loss = ce
         loss.backward()
         optimizer.step()
         bs = x.size(0)

@@ -12,7 +12,7 @@ from ops.edge_widen import edge_widen
 from training.data import build_cifar10_loaders
 from training.loop import evaluate, train_one_epoch
 from training.synthetic import build_synthetic_loaders
-from utils.checkpoint import save_checkpoint
+from utils.checkpoint import load_model_weights, save_checkpoint
 from utils.graph_validator import validate_forward
 from utils.model_info import (
     count_trainable_parameters,
@@ -89,14 +89,31 @@ def main():
 
     model_name = cfg.get("model", {}).get("name", "mlp")
 
+    teacher = None
     if model_name == "cifar_cnn":
         train_loader, test_loader = build_cifar10_loaders(cfg)
-        model = CifarGraphNet(num_classes=int(cfg["model"]["num_classes"])).to(device)
+        num_classes = int(cfg["model"]["num_classes"])
+        model = CifarGraphNet(num_classes=num_classes).to(device)
         sample = next(iter(train_loader))[0][:2].to(device)
         validate_forward(model, sample)
+
     else:
         train_loader, test_loader = build_synthetic_loaders(cfg)
         model = StudentNet(**cfg["model"]).to(device)
+
+    t_cfg = cfg.get("teacher") or {}
+    if model_name == "cifar_cnn" and bool(t_cfg.get("enabled", False)):
+        ckpt_path = t_cfg.get("checkpoint")
+        if not ckpt_path:
+            raise ValueError("teacher.enabled is true but teacher.checkpoint is missing")
+        ckpt_path = str(ckpt_path)
+        num_classes = int(cfg["model"]["num_classes"])
+        teacher = CifarGraphNet(num_classes=num_classes).to(device)
+        load_model_weights(teacher, ckpt_path)
+        teacher.eval()
+        for p in teacher.parameters():
+            p.requires_grad_(False)
+        print(f"[teacher] Loaded frozen teacher from {ckpt_path} (KD training).")
 
     optimizer = torch.optim.Adam(
         model.parameters(),
@@ -115,10 +132,19 @@ def main():
     run_ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     experiment_name = cfg["experiment"]["name"]
 
+    kd_temp = float(t_cfg.get("temperature", 4.0))
+    kd_alpha = float(t_cfg.get("alpha", 0.5))
+
     epochs = int(train_cfg["epochs"])
     for epoch in range(epochs):
         train_loss, train_acc = train_one_epoch(
-            model, optimizer, device, train_loader
+            model,
+            optimizer,
+            device,
+            train_loader,
+            teacher=teacher,
+            kd_temperature=kd_temp,
+            kd_alpha=kd_alpha,
         )
         val_loss, val_acc = evaluate(model, device, test_loader)
 
@@ -167,6 +193,8 @@ def main():
         )
         if mutation_applied:
             line += " | mutation=on"
+        if teacher is not None:
+            line += f" | kd T={kd_temp} α={kd_alpha}"
         print(line)
 
         n_params = count_trainable_parameters(model)

@@ -1,0 +1,40 @@
+# Phase 3: train student with optional KD from a frozen teacher (same arch as student).
+# Prerequisite: train the baseline and point teacher.checkpoint at its weights, e.g.:
+#   python train.py --config configs/phase2_cifar_full.yaml
+# Default path below matches experiment.name from phase2_cifar_full.yaml.
+experiment:
+  name: cgse_phase3_cifar_kd
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  lr: 0.001
+  weight_decay: 0.0005
+  seed: 42
+  log_csv: runs/phase3_cifar_kd_metrics.csv
+
+model:
+  name: cifar_cnn
+  num_classes: 10
+
+device: mps
+
+# Frozen teacher: must match student class (CifarGraphNet) and num_classes.
+teacher:
+  enabled: true
+  checkpoint: checkpoints/cgse_phase2_cifar_full.pt
+  temperature: 4.0
+  alpha: 0.5
+
+mutation:
+  enabled: false
+  once_after_epoch: 10
+  widen_delta: 32
+  log_jsonl: runs/phase3_cifar_kd_mutations.jsonl

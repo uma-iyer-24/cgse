@@ -51,7 +51,7 @@ The same section emphasizes:
 
 ### Where this repository stands
 
-**In code today**, the **critic module is not trained**; see the placeholder **`critics/critic.py`**. Experiments use **YAML schedules** (e.g. widen once after epoch *k*) so that **safe mutations, metrics, and baselines** exist before the full critic loop is implemented. **Knowledge distillation**, **teacher networks**, and **TGCE-style** staged teacher/critic control appear in the manuscript as **design options**, not as defaults in `train.py`.
+**In code today**, the **critic module is not trained**; see the placeholder **`critics/critic.py`**. Experiments use **YAML schedules** (e.g. widen once after epoch *k*) so that **safe mutations, metrics, and baselines** exist before the full critic loop is implemented. **Frozen-teacher knowledge distillation** (Phase 3) is available in `train.py` via the **`teacher`** config block; **TGCE-style** staged hand-off between teacher and critic remains a **design target**, not implemented as a schedule yet.
 
 ---
 
@@ -78,7 +78,8 @@ CGSE implements that substrate in PyTorch and connects it to a **real vision ben
 | **CIFAR-10 training** | Active | `CifarGraphNet` (small CNN as a graph); train/test metrics; YAML configs. |
 | **Experiment logging** | Active | Per-epoch CSV (`training.log_csv`); optional JSONL per mutation event (`mutation.log_jsonl`). |
 | **In-loop mutation (Phase 2)** | Active | Config-driven: e.g. widen once after a chosen epoch, then continue training. |
-| **Teacher / distillation / learned critic–controller** | Not in code yet | Described in the manuscript PDFs under `paper_documentation/`; stub **`critics/critic.py`**. |
+| **Frozen teacher + KD (Phase 3)** | Active | Load a saved **`CifarGraphNet`** checkpoint; train student with CE + softened KL (see **`configs/phase3_cifar_kd.yaml`**). |
+| **Learned critic–controller (CGSE)** | Not in code yet | Manuscript + stub **`critics/critic.py`**. |
 | **Pytest suite** | Minimal | Demos and stress scripts under `scripts/`; `tests/` reserved for automated tests. |
 
 See **[Phase status](paper_documentation/CGSE-implementation-log.md#3-phase-status)** in the implementation log for a compact roadmap table.
@@ -144,6 +145,13 @@ python train.py --config configs/phase2_cifar_full.yaml
 
 ```bash
 python train.py --config configs/phase2_cifar_full_mutate.yaml
+```
+
+**Phase 3 — knowledge distillation** (frozen teacher from a saved checkpoint; train the Phase 2 full baseline first so `checkpoints/cgse_phase2_cifar_full.pt` exists):
+
+```bash
+python train.py --config configs/phase3_cifar_kd.yaml
+python train.py --config configs/phase3_cifar_kd_smoke.yaml   # tiny subset, CPU
 ```
 
 **Fast smoke tests** (small subsets):

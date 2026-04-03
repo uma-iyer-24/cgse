@@ -61,15 +61,18 @@
 | `ops/edge_split.py`, `ops/edge_widen.py` | Structural mutation operators (deepen/split, widen). |
 | `utils/graph_validator.py` | Post-mutation shape / integrity checks. |
 | `utils/optimizer_utils.py` | `refresh_optimizer` after new parameters appear. |
-| `training/loop.py` | `train_one_epoch`, `evaluate` (loss + accuracy). |
+| `training/loop.py` | `train_one_epoch`, `evaluate` (loss + accuracy); optional **KD** vs frozen teacher. |
 | `training/data.py` | CIFAR-10 loaders, optional train/test subsets. |
 | `training/synthetic.py` | Synthetic tensor dataset for Phase-0 MLP smoke tests. |
 | `models/cifar_student.py` | `CifarGraphNet` — small CNN as sequential `GraphModule`. |
-| `train.py` | CLI (`--config`, `--device`); Phase 2 + synthetic paths. |
+| `train.py` | CLI (`--config`, `--device`); CIFAR + synthetic; optional **teacher/KD** (Phase 3). |
+| `utils/checkpoint.py` | `save_checkpoint`, `load_model_weights`. |
 | `configs/base.yaml` | Synthetic MLP defaults (`model` without `name` → MLP). |
 | `configs/phase2_cifar.yaml` | Phase 2 defaults (CIFAR subset, MPS, optional mutation). |
 | `configs/phase2_smoke.yaml` | Fast CPU smoke run. |
 | `configs/phase2_cifar_full.yaml` | Full CIFAR-10 train/test, longer epochs (paper baseline). |
+| `configs/phase3_cifar_kd.yaml` | Full CIFAR + KD from frozen teacher checkpoint. |
+| `configs/phase3_cifar_kd_smoke.yaml` | Tiny subset KD smoke (needs teacher `.pt`). |
 | `utils/model_info.py` | Trainable param count, first Linear id, shape helpers. |
 | `utils/mutation_log.py` | Append **JSONL** mutation events. |
 | `requirements.txt` | `torch`, `torchvision`, `PyYAML`. |
@@ -86,7 +89,8 @@
 | 0 | Env, config, minimal train, checkpointing | **Partial** | Synthetic loop exists; resume + config-in-checkpoint TBD. |
 | 1 | Mutable graph, mutations, validation, live training | **Largely done** | Core ops + tests; API consolidation optional. |
 | 2 | CIFAR (or subset), student baseline, mutations in-loop, logging | **In progress** | CIFAR-10 loaders, `CifarGraphNet`, metrics + CSV; optional `mutation` block in YAML. |
-| 3+ | Teacher, KD, CGSE controller | **Not started** | Documented in `project-doc.pdf` / phase plan. |
+| 3 | Frozen teacher + KD on CIFAR | **Started** | `teacher` YAML block, `load_model_weights`, combined CE+KD in `training/loop.py`; configs `phase3_cifar_kd*.yaml`. |
+| 4+ | Learned critic / CGSE controller | **Not started** | Documented in manuscript / phase plan. |
 
 ---
 
@@ -143,6 +147,13 @@
 - **Bug.** `nn.Linear(...)` defaults to **CPU**. After **`edge_widen`** on a model on **MPS** (or CUDA), the widened and resized layers stayed on CPU → `RuntimeError: Tensor for argument weight is on cpu but expected on mps` on the next forward pass (see `runs/train_phase2_cifar_full_mutate.log`).
 - **Fix.** **`ops/edge_widen.py`** builds replacement layers with **`.to(device=…, dtype=…)`** from the target/downstream linears; downstream bias copy uses **`copy_`** instead of replacing the `Parameter`. The same pattern is applied in **`models/graph.py`** (`widen_node`) and **`ops/edge_split.py`** (inserted identity linear).
 
+### 2026-04-04 — Phase 3 (frozen teacher + knowledge distillation)
+
+- **`utils/checkpoint.load_model_weights`** — load `model` state dict from checkpoints written by `save_checkpoint`.
+- **`training/loop.py`** — `kd_distillation_loss`; **`train_one_epoch`** accepts optional frozen **`teacher`**, **`kd_temperature`**, **`kd_alpha`**; training loss = \((1-\alpha)\) CE + \(\alpha\) \(T^2\) KL(soft student \(\|\) soft teacher).
+- **`train.py`** — if **`teacher.enabled`** and **`model.name: cifar_cnn`**, builds a second **`CifarGraphNet`**, loads **`teacher.checkpoint`**, freezes parameters, runs KD during training. Val metrics remain standard CE / accuracy on the **student**.
+- **Configs.** `configs/phase3_cifar_kd.yaml` (full CIFAR, 50 epochs); `configs/phase3_cifar_kd_smoke.yaml` (subset, CPU-friendly). **Prerequisite:** train **`configs/phase2_cifar_full.yaml`** first (or any run that saves a compatible **`CifarGraphNet`** `.pt`) and set **`teacher.checkpoint`** accordingly.
+
 ### 2026-04-02 — Phase 2 mutation ablation config (full CIFAR)
 
 - **Added** `configs/phase2_cifar_full_mutate.yaml`: same data/hyperparams/seed as the baseline, but **`mutation.enabled: true`** with **`once_after_epoch: 10`**, **`widen_delta: 32`**, **`edge_widen` on `fc1`**, optimizer refresh, and artifacts:
@@ -160,7 +171,8 @@ Use one row per meaningful run (baseline, ablation, or production experiment). P
 | Run ID | Date | Config / command | Notes | Log file |
 |--------|------|-------------------|-------|----------|
 | phase2_cifar_full_baseline | 2026-04-02 | `python train.py --config configs/phase2_cifar_full.yaml` | Full CIFAR-10, 50 epochs, mutation off. Final `val_acc ≈ 0.8454`. | `runs/train_phase2_cifar_full.log` |
-| phase2_cifar_full_mutate | — | `python train.py --config configs/phase2_cifar_full_mutate.yaml` | Same as baseline + one widen after epoch 10. **Run locally**; then add console log path and final metrics here. | `runs/phase2_cifar_full_mutate_metrics.csv` (CSV); capture `train_*.log` if you redirect stdout |
+| phase2_cifar_full_mutate | 2026-04-03 | `python train.py --config configs/phase2_cifar_full_mutate.yaml` | Same as baseline + one widen after epoch 10 (device fix 2026-04-04). CSV records **epochs 0–44** (45 epochs); last row `val_acc ≈ 0.8379`, `num_parameters = 686698` after widen. Re-run for full 50 if needed. | `runs/phase2_cifar_full_mutate_metrics.csv`; `runs/train_phase2_cifar_full_mutate.log` |
+| phase3_cifar_kd | — | `python train.py --config configs/phase3_cifar_kd.yaml` | KD from frozen **`CifarGraphNet`** teacher checkpoint (default `checkpoints/cgse_phase2_cifar_full.pt`). Fill metrics after run. | `runs/phase3_cifar_kd_metrics.csv` |
 
 ### Excerpt template (copy for each run)
 
@@ -184,6 +196,7 @@ Use one row per meaningful run (baseline, ablation, or production experiment). P
 | D2 | **Test set** for “val” metrics | Held-out slice of train | Standard CIFAR protocol; simpler reproducibility. | 2026-04-02 |
 | D3 | `train.py` default config = **`configs/phase2_cifar.yaml`** | `base.yaml` | Phase 2 is the active research track; synthetic remains via `--config configs/base.yaml`. | 2026-04-02 |
 | D4 | Mutation events as **JSONL** (append-only) | Only CSV | CSV is per-epoch; JSONL captures discrete **structural** events with layer metadata for plots. | 2026-04-02 |
+| D5 | Phase 3 teacher = **same class** as student (`CifarGraphNet`), load `.pt` | Wider separate teacher CNN | Reuses baseline checkpoint; KD logits align without extra bridge layers. | 2026-04-04 |
 
 ---
 
@@ -196,7 +209,7 @@ Items to fill as experiments land:
 - [ ] **Mutation schedule:** still **epoch-triggered** in config; replace with **signal-driven** when CGSE scoring lands.
 - [x] **Structured mutation log:** JSONL schema via `mutation.log_jsonl` (see `utils/mutation_log.py`).
 - [x] **Full-data baseline:** `configs/phase2_cifar_full.yaml` completed; artifacts in repo-root **`runs/`**.
-- [ ] Comparison table: fixed vs random mutation vs teacher (Phase 3) vs CGSE (Phase 7).
+- [ ] Comparison table: fixed vs random mutation vs teacher+KD (`phase3_cifar_kd`) vs CGSE critic (later).
 - [ ] Seeds, wall-clock, and hardware for each reported result.
 
 ---

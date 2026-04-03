@@ -69,7 +69,7 @@ cgse/
 2. **`training/data.build_cifar10_loaders`** builds train/test `DataLoader`s (optional subsets).
 3. **`models/cifar_student.CifarGraphNet`** is constructed and moved to device; **`utils/graph_validator.validate_forward`** runs a tiny batch sanity check.
 4. **Optimizer** (Adam by default) wraps `model.parameters()`.
-5. Each **epoch**: **`training/loop.train_one_epoch`** → **`training/loop.evaluate`** (test set as “val”).
+5. Each **epoch**: **`training/loop.train_one_epoch`** → **`training/loop.evaluate`** (test set as “val”). If YAML **`teacher.enabled`**, training loss mixes CE with **KD** against a frozen **`CifarGraphNet`** loaded from **`teacher.checkpoint`**.
 6. Optional **mutation** after a chosen epoch: **`ops/edge_widen.edge_widen`** with explicit first **`Linear`** target, then **`utils/optimizer_utils.refresh_optimizer`**.
 7. **Logging**: optional CSV (`training.log_csv`), optional mutation JSONL (`mutation.log_jsonl` via **`utils/mutation_log.append_mutation_jsonl`**), console prints.
 8. **Checkpoint**: **`utils/checkpoint.save_checkpoint`** writes `checkpoints/<experiment.name>.pt`.
@@ -94,6 +94,8 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 | **`configs/phase2_cifar_full_mutate.yaml`** | Same as full baseline + **one** `edge_widen` after epoch 10; separate CSV/JSONL/checkpoint name. |
 | **`configs/phase2_smoke.yaml`** | Tiny subset, CPU-friendly smoke test. |
 | **`configs/phase2_smoke_mutate.yaml`** | Smoke + one widen + mutation JSONL path. |
+| **`configs/phase3_cifar_kd.yaml`** | Full CIFAR + **KD**: frozen teacher from `teacher.checkpoint` (same `CifarGraphNet` arch). |
+| **`configs/phase3_cifar_kd_smoke.yaml`** | Small subset, few epochs, CPU; same teacher block. |
 
 **Cross-cutting YAML sections:**
 
@@ -102,6 +104,7 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 - **`training`** — `epochs`, `batch_size`, `lr`, `weight_decay`, `seed`, `log_csv`.
 - **`model`** — For CIFAR: `name: cifar_cnn`, `num_classes`. For MLP: `input_dim`, `hidden_dim`, `output_dim`.
 - **`device`** — `cpu`, `cuda`, `mps`, or `auto` (overridable by CLI).
+- **`teacher`** (Phase 3, CIFAR only) — `enabled`, `checkpoint`, `temperature`, `alpha` (KD weight on softened logits).
 - **`mutation`** — `enabled`, `once_after_epoch`, `widen_delta`, `log_jsonl`.
 
 ---
@@ -151,7 +154,7 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 
 | File | Role |
 |------|------|
-| **`training/loop.py`** | **`train_one_epoch(model, optimizer, device, loader)`** — full pass, cross-entropy, mean loss + accuracy. **`evaluate(model, device, loader)`** — eval mode, same metrics. |
+| **`training/loop.py`** | **`train_one_epoch(..., teacher=None, kd_temperature, kd_alpha)`** — CE, or \((1-\alpha)\) CE + \(\alpha\) KD vs frozen teacher. **`evaluate`** — CE + accuracy (student only). |
 | **`training/data.py`** | **`build_cifar10_loaders(cfg)`** — torchvision **CIFAR-10**, train augment, test eval transform, optional **`Subset`**. |
 | **`training/synthetic.py`** | **`build_synthetic_loaders(cfg)`** — `TensorDataset` of random features/labels for MLP smoke tests. |
 
@@ -161,7 +164,7 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 
 | File | Role |
 |------|------|
-| **`utils/checkpoint.py`** | **`save_checkpoint(model, optimizer, path)`** — saves `state_dict`s under parent dirs. |
+| **`utils/checkpoint.py`** | **`save_checkpoint`**, **`load_model_weights`** (restore `model` from a file saved by `save_checkpoint`). |
 | **`utils/repro.py`** | **`set_seed(seed)`** — Python / NumPy / PyTorch seeds. |
 | **`utils/graph_validator.py`** | **`validate_graph(model, input_dim=...)`** — walks `Linear` layers in order (legacy MLP checks). **`validate_forward(model, x)`** — one forward pass (good for CNNs). |
 | **`utils/optimizer_utils.py`** | **`refresh_optimizer(old_opt, model)`** — new optimizer over `model.parameters()`, copies optimizer state for **tensor-identical** parameters, fresh state for new tensors. |
@@ -250,5 +253,6 @@ flowchart TD
 | 2026-04-02 | **`runs/`** at **repo root** only; legacy YAML paths rewritten in code. |
 | 2026-04-02 | **`paper_documentation/runs`** is a **sentinel file** blocking a duplicate `runs/` directory under docs. |
 | 2026-04-04 | Cross-link **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)** from the purpose blurb (narrative + rationale companion). |
+| 2026-04-04 | Phase 3: **`teacher`** YAML, KD in **`training/loop.py`**, **`load_model_weights`**, configs **`phase3_cifar_kd*.yaml`**. |
 
 *Append a row whenever this guide is meaningfully updated.*

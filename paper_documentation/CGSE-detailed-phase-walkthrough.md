@@ -29,7 +29,7 @@
 - **Phase 0–1:** A **mutable graph** representation, **structural operators** (widen, split/deepen), **validation** after edits, and **optimizer refresh** so training can continue when new parameters appear.
 - **Phase 2:** The same machinery is **wired to CIFAR-10**, a **small convolutional student** still represented as a graph, a **proper train/eval loop**, **CSV and JSONL logging** for papers and plots, and an **optional single widen mid-training** driven by YAML.
 
-**Why phase in this way.** Graph surgery is easy to get wrong (shape mismatches, stale optimizer state, silent bugs). Building **Phase 1** on synthetic data and small MLPs isolates those risks. **Phase 2** then proves the pipeline on a **standard vision benchmark** without yet introducing teachers, distillation, or learned mutation policies—those are **later phases** in the PDF plan.
+**Why phase in this way.** Graph surgery is easy to get wrong (shape mismatches, stale optimizer state, silent bugs). Building **Phase 1** on synthetic data and small MLPs isolates those risks. **Phase 2** proves the pipeline on a **standard vision benchmark**; **Phase 3** adds a **frozen-teacher KD** path; **learned critics** and **TGCE-style** schedules remain **later** relative to the PDF plan.
 
 ---
 
@@ -284,6 +284,8 @@
 | **`configs/phase2_cifar_full_mutate.yaml`** | **Same** as full baseline (same seed and hyperparameters) but **one widen** after epoch 10; **separate** CSV, JSONL, and **`experiment.name`** so artifacts do not overwrite the baseline. |
 | **`configs/phase2_smoke.yaml`** | Tiny data, CPU-friendly **sanity** run. |
 | **`configs/phase2_smoke_mutate.yaml`** | Smoke + mutation + JSONL path test. |
+| **`configs/phase3_cifar_kd.yaml`** | Full CIFAR + KD from a saved student checkpoint used as teacher. |
+| **`configs/phase3_cifar_kd_smoke.yaml`** | Tiny subset KD smoke. |
 | **`configs/base.yaml`** | Synthetic MLP path (no CIFAR). |
 
 **Why.** **Separation of concerns**: baseline vs ablation is a **config diff**, not a code fork—critical for **Methods** sections and **reproducibility**.
@@ -302,7 +304,9 @@
 - **`runs/train_phase2_cifar_full.log`** — Console capture (if saved).
 - **`checkpoints/cgse_phase2_cifar_full.pt`** — Local checkpoint (large; typically **not** committed—see **`.gitignore`** patterns).
 
-**Phase 2 status note.** CIFAR path, logging, and scheduled mutation are **working**; **teacher**, **distillation**, and **learned mutation policies** are **out of scope** for current code (see §6).
+**Phase 2 status note.** CIFAR path, logging, and scheduled mutation are **working**.
+
+**Phase 3 (started).** **`teacher`** YAML block + **`load_model_weights`**: frozen **`CifarGraphNet`** checkpoint, **KD** in **`training/loop.py`** (`phase3_cifar_kd*.yaml`). **Learned critic** and **TGCE schedules** remain future work (see §6).
 
 ---
 
@@ -375,7 +379,7 @@
 
 This section summarizes **intent from the roadmap PDFs** that is **not** implemented as first-class code paths yet:
 
-- **Teacher network** and **knowledge distillation** (Phase 3-style baselines).
+- **Learned critic** and full **TGCE** staging (Phase 3 KD with a **frozen** checkpoint teacher is implemented; richer teacher setups TBD).
 - **Controller / critic-guided** mutation selection (CGSE proper vs **epoch-scheduled** widen).
 - **Random mutation** controls matched for compute budget.
 - **Richer checkpoint resume** (config-in-checkpoint, full interrupted-run recovery)—see Phase 0 **partial** status.
