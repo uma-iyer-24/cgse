@@ -10,12 +10,13 @@
 - Code paths are relative to the repository root unless stated otherwise.
 - Training commands are copy-pasteable; metrics and logs are under **[`runs/`](../runs/)** (repo root); excerpts are summarized here.
 - When the **layout of the code** changes (new packages, renamed modules, new entry points), update **[`CGSE-codebase-guide.md`](CGSE-codebase-guide.md)** in the same breath so it stays the single file-by-file reference.
+- For a **full narrative** of phases, steps, rationale, and file mapping, see **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)**.
 
 ---
 
 ## Table of contents
 
-1. [Project snapshot (for the paper)](#1-project-snapshot-for-the-paper) — includes [plain-language Phase 2 summary](#plain-language-phase-2)
+1. [Project snapshot (for the paper)](#1-project-snapshot-for-the-paper) — includes [plain-language Phase 2 summary](#plain-language-phase-2); see also **[detailed phase walkthrough](CGSE-detailed-phase-walkthrough.md)**
 2. [Repository map (implementation-relevant)](#2-repository-map-implementation-relevant)
 3. [Phase status](#3-phase-status)
 4. [Chronological implementation log](#4-chronological-implementation-log)

@@ -1,6 +1,6 @@
 # CGSE codebase guide
 
-**Purpose.** A **file-by-file** map of this repository so you can read it alongside the code and understand **what lives where**, **how data flows**, and **how pieces depend on each other**. This is the canonical “onboarding + deep dive” document for the implementation (complementary to `project-doc.pdf` for research narrative and `CGSE-implementation-log.md` for experiment history).
+**Purpose.** A **file-by-file** map of this repository so you can read it alongside the code and understand **what lives where**, **how data flows**, and **how pieces depend on each other**. This is the canonical “onboarding + deep dive” document for the implementation (complementary to `project-doc.pdf` for research narrative, `CGSE-implementation-log.md` for experiment history, and **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)** for a long-form phase-by-phase story with rationale).
 
 **How to maintain this document (important).**
 
@@ -249,5 +249,6 @@ flowchart TD
 | 2026-04-02 | Initial guide: Phase 1–2 layout, configs, scripts, placeholders. |
 | 2026-04-02 | **`runs/`** at **repo root** only; legacy YAML paths rewritten in code. |
 | 2026-04-02 | **`paper_documentation/runs`** is a **sentinel file** blocking a duplicate `runs/` directory under docs. |
+| 2026-04-04 | Cross-link **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)** from the purpose blurb (narrative + rationale companion). |
 
 *Append a row whenever this guide is meaningfully updated.*
