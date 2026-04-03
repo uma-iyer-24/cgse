@@ -1,3 +1,9 @@
+"""
+Train structurally mutable students (CIFAR or synthetic MLP).
+
+Experimental arms (see root README): (1) optional frozen *teacher* + KD — SEArch-style
+control; (2) future CGSE — *critic* replaces the teacher for mutation gating (not wired yet).
+"""
 import argparse
 import csv
 from datetime import datetime, timezone

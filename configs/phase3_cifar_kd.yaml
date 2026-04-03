@@ -1,7 +1,8 @@
-# Phase 3: train student with optional KD from a frozen teacher (same arch as student).
-# Prerequisite: train the baseline and point teacher.checkpoint at its weights, e.g.:
-#   python train.py --config configs/phase2_cifar_full.yaml
-# Default path below matches experiment.name from phase2_cifar_full.yaml.
+# Teacher + KD, fixed architecture (no mutation).
+# SEArch-style *control* condition: external teacher soft targets only — compare to
+# baseline_sear_ch_teacher_mutate.yaml (teacher + KD + mutate) and future CGSE (critic, no teacher).
+#
+# Prerequisite: python train.py --config configs/phase2_cifar_full.yaml
 experiment:
   name: cgse_phase3_cifar_kd
 

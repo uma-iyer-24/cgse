@@ -22,14 +22,14 @@
 
 ## 1. Background: what CGSE is building toward
 
-**Research direction (high level).** CGSE explores **students whose network structure can change during training**—for example, **widening** a linear layer or **inserting** depth—under eventual control of a **critic or controller**, compared with **teacher-guided** and **random** baselines. The full research story lives in **`project-doc.pdf`** and the phased roadmap in **`phase-plan-overview.pdf`** inside this folder.
+**Research direction (high level).** The repo implements **structurally mutable** students on CIFAR-10 and builds toward **one** clear comparison: **SEArch-style control** uses a **frozen teacher** (knowledge distillation) as the extra signal while the student may **mutate**; **CGSE** **removes the teacher** and uses a **structural critic** for **mutation** decisions (classification still uses label CE). Other ideas from early brainstorming are **not** in scope here.
 
 **What this repository implements today.** The code is intentionally **staged**:
 
-- **Phase 0–1:** A **mutable graph** representation, **structural operators** (widen, split/deepen), **validation** after edits, and **optimizer refresh** so training can continue when new parameters appear.
-- **Phase 2:** The same machinery is **wired to CIFAR-10**, a **small convolutional student** still represented as a graph, a **proper train/eval loop**, **CSV and JSONL logging** for papers and plots, and an **optional single widen mid-training** driven by YAML.
-
-**Why phase in this way.** Graph surgery is easy to get wrong (shape mismatches, stale optimizer state, silent bugs). Building **Phase 1** on synthetic data and small MLPs isolates those risks. **Phase 2** proves the pipeline on a **standard vision benchmark**; **Phase 3** adds a **frozen-teacher KD** path; **learned critics** and **TGCE-style** schedules remain **later** relative to the PDF plan.
+- **Phase 0–1:** **Mutable graph**, **widen/split** ops, **validation**, **optimizer refresh**.
+- **Phase 2:** **CIFAR-10**, **`CifarGraphNet`**, metrics, CSV/JSONL, **YAML-timed** mutation.
+- **Phase 3:** **Teacher + KD** (`phase3_cifar_kd.yaml`) and **`baseline_sear_ch_teacher_mutate.yaml`** (teacher + KD + mutate — the **control** arm).
+- **Next (CGSE):** train **`StructuralCritic`** and **gate** mutations from it in **`train.py`** (no teacher).
 
 ---
 
@@ -172,15 +172,15 @@
 - **`scripts/test_robustness.py`** — Sequences of mutations + deterministic checks.
 - **`scripts/test_graph_visual.py`**, **`scripts/test_graph_ascii.py`** — Human-readable structure dumps.
 
-### Step 3.7 — Placeholder for future critic
+### Step 3.7 — Structural critic module (CGSE stub)
 
-**What we did.** Reserved **`critics/critic.py`** as a stub for a future **scoring / critic** module (later CGSE phases).
+**What we did.** Added **`critics/critic.py`** with **`StructuralCritic`**, a small MLP mapping a **state vector** to a **scalar score** — intended to **replace the teacher** for **structural** decisions only (not class logits). **`train.py`** integration is **still to do**.
 
-**Why.** Documents **intent** without blocking Phase 1–2 work.
+**Why.** Makes the **CGSE** arm concrete in the file tree while the **SEArch-style teacher** path is implemented first.
 
 **Files.**
 
-- **`critics/critic.py`** — Placeholder.
+- **`critics/critic.py`**, **`critics/__init__.py`**
 
 **Phase 1 status note.** Core **ops + graph + optimizer refresh + scripts** are in place; optional **API consolidation** or **pytest** expansion (see empty **`tests/test_graph_ops.py`**) can still grow.
 
@@ -306,7 +306,7 @@
 
 **Phase 2 status note.** CIFAR path, logging, and scheduled mutation are **working**.
 
-**Phase 3 (started).** **`teacher`** YAML block + **`load_model_weights`**: frozen **`CifarGraphNet`** checkpoint, **KD** in **`training/loop.py`** (`phase3_cifar_kd*.yaml`). **Learned critic** and **TGCE schedules** remain future work (see §6).
+**Phase 3 (started).** **`teacher`** YAML + **`load_model_weights`**: frozen **`CifarGraphNet`**, **KD** in **`training/loop.py`**; **`baseline_sear_ch_teacher_mutate.yaml`** for **teacher + mutate** control. **CGSE:** wire **`StructuralCritic`** into **`train.py`** (see §6).
 
 ---
 
@@ -377,19 +377,16 @@
 
 ## 6. What is deliberately not done yet (later phases)
 
-This section summarizes **intent from the roadmap PDFs** that is **not** implemented as first-class code paths yet:
-
-- **Learned critic** and full **TGCE** staging (Phase 3 KD with a **frozen** checkpoint teacher is implemented; richer teacher setups TBD).
-- **Controller / critic-guided** mutation selection (CGSE proper vs **epoch-scheduled** widen).
-- **Random mutation** controls matched for compute budget.
-- **Richer checkpoint resume** (config-in-checkpoint, full interrupted-run recovery)—see Phase 0 **partial** status.
-- **ResNet-style backbone** for stronger CIFAR baselines—called out as **planned direction** in **`CGSE-codebase-guide.md`** while keeping mutation **interfaces** stable.
+- **CGSE integration:** **`StructuralCritic`** exists as a stub; **training** the critic and **replacing YAML mutation timing** with **critic scores** in **`train.py`** is the main open item.
+- **Random mutation** control matched for compute (optional ablation).
+- **Richer checkpoint resume** (Phase 0 partial).
+- **ResNet-style backbone** (optional stronger student)—see **`CGSE-codebase-guide.md`**.
 
 **Files for future work.**
 
-- **`critics/critic.py`** — Expected to grow.
-- **`tests/test_graph_ops.py`** — Placeholder for automated tests.
-- Research design: **`project-doc.pdf`**, **`phase-plan-overview.pdf`**.
+- **`critics/critic.py`**, **`train.py`** — critic loop and mutation gating.
+- **`tests/test_graph_ops.py`** — placeholder for pytest.
+- PDFs under **`paper_documentation/`** for narrative context only; **implementation scope** is **teacher vs critic**, not every variant in those notes.
 
 ---
 
@@ -401,6 +398,8 @@ This section summarizes **intent from the roadmap PDFs** that is **not** impleme
 | Phase 2 CIFAR (default file) | **`configs/phase2_cifar.yaml`** | **`train.py`** → **`training/data.py`** → **`CifarGraphNet`** | CSV if **`training.log_csv`** set |
 | Full baseline (paper) | **`configs/phase2_cifar_full.yaml`** | Same as above, **`mutation.enabled: false`** | **`runs/phase2_cifar_full_metrics.csv`**, local **`.pt`** |
 | Full + one widen | **`configs/phase2_cifar_full_mutate.yaml`** | Same + **`edge_widen`** after epoch 10 | **`*_mutate_metrics.csv`**, **`*_mutations.jsonl`**, local **`.pt`** |
+| Teacher + KD (fixed arch) | **`configs/phase3_cifar_kd.yaml`** | **`train.py`** + **`training/loop.py`** KD | **`runs/phase3_cifar_kd_metrics.csv`**, local **`.pt`** |
+| SEArch control: teacher + KD + widen | **`configs/baseline_sear_ch_teacher_mutate.yaml`** | KD + **`edge_widen`** after epoch 10 | **`runs/baseline_sear_ch_teacher_mutate_*.csv/jsonl`** |
 | Fast CPU check | **`configs/phase2_smoke.yaml`** | Subsets in **`data`** section | Small CSV / logs |
 
 ---
@@ -413,4 +412,4 @@ When you **add a phase** or **change behavior** (new model, new mutation trigger
 2. Update **[`CGSE-codebase-guide.md`](CGSE-codebase-guide.md)** tables and execution paths.
 3. Update **this walkthrough** so the **narrative** stays true—especially §4–§7 and the config table.
 
-*Last aligned with repository layout and Phase 0–2 scope: 2026-04-04.*
+*Last aligned with repository layout through Phase 3 teacher path and CGSE stub: 2026-04-04.*

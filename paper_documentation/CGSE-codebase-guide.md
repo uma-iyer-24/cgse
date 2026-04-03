@@ -35,7 +35,7 @@ CGSE’s code is organized around three ideas:
 2. **Structural ops** — Small, testable functions (**widen**, **split/deepen**) that change width/depth while trying to **preserve behavior** (weight copy / identity init) and **fix downstream shapes**.
 3. **Training loop** — Standard supervised learning; optionally **mutate** once or repeatedly, then **refresh the optimizer** so new parameters are trained.
 
-Phase 2 adds **real data (CIFAR-10)** and **logging** (CSV per epoch, JSONL per mutation). Later phases (teacher, critic) will attach new **controllers** without replacing the graph/mutation core—update this doc when those land.
+Phase 2 adds **CIFAR-10** and **logging**. Phase 3 adds a **frozen teacher + KD** path (**SEArch-style control**). **CGSE** will **replace the teacher with `StructuralCritic`** for mutation gating only; other multi-objective / hybrid ideas from early notes are **not** in scope for this repo.
 
 **Planned backbone progression.** The current student in Phase 2 is a **small CIFAR CNN** (`CifarGraphNet`) because it is simple, fast, and makes mutation plumbing easy to validate. For paper-quality comparisons and later phases, the intended direction is to move the student backbone toward a **ResNet-style model** (still on CIFAR first), while keeping the same mutation/controller interfaces. When that switch happens, update this document’s **Models** and **Execution paths** sections accordingly.
 
@@ -53,6 +53,7 @@ cgse/
 ├── training/                # Data loaders, train/eval loop, synthetic data
 ├── utils/                   # checkpoint, seeds, validators, mutation logging, optimizer refresh
 ├── scripts/                 # Standalone mutation / robustness demos (not pytest)
+├── critics/                 # StructuralCritic (CGSE; replaces teacher for structural decisions)
 ├── paper_documentation/     # Paper PDFs, implementation log, this guide
 ├── runs/                    # Training CSV / JSONL / console logs (repo root)
 ├── checkpoints/             # Saved .pt (some patterns gitignored)
@@ -96,6 +97,7 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 | **`configs/phase2_smoke_mutate.yaml`** | Smoke + one widen + mutation JSONL path. |
 | **`configs/phase3_cifar_kd.yaml`** | Full CIFAR + **KD**: frozen teacher from `teacher.checkpoint` (same `CifarGraphNet` arch). |
 | **`configs/phase3_cifar_kd_smoke.yaml`** | Small subset, few epochs, CPU; same teacher block. |
+| **`configs/baseline_sear_ch_teacher_mutate.yaml`** | **SEArch control:** teacher + KD + one widen (same schedule as full mutate). |
 
 **Cross-cutting YAML sections:**
 
@@ -194,7 +196,7 @@ Runnable demos / stress tests (invoke with `python scripts/<name>.py` from repo 
 | Path | Status |
 |------|--------|
 | **`tests/test_graph_ops.py`** | **Empty placeholder** — room for future **pytest** unit tests (`pytest tests/`). |
-| **`critics/critic.py`** | **Empty placeholder** — future **CGSE critic** or scoring network (Phase 7 direction). |
+| **`critics/critic.py`** | **`StructuralCritic`** — small MLP stub; **CGSE** will use it **instead of** the teacher to score structural actions (training + `train.py` wiring **TBD**). |
 
 ---
 
@@ -254,5 +256,6 @@ flowchart TD
 | 2026-04-02 | **`paper_documentation/runs`** is a **sentinel file** blocking a duplicate `runs/` directory under docs. |
 | 2026-04-04 | Cross-link **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)** from the purpose blurb (narrative + rationale companion). |
 | 2026-04-04 | Phase 3: **`teacher`** YAML, KD in **`training/loop.py`**, **`load_model_weights`**, configs **`phase3_cifar_kd*.yaml`**. |
+| 2026-04-04 | Scope: **teacher vs critic** only; **`baseline_sear_ch_teacher_mutate.yaml`**, **`StructuralCritic`** in **`critics/`**. |
 
 *Append a row whenever this guide is meaningfully updated.*
