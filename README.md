@@ -48,9 +48,6 @@ The same section emphasizes:
 
 > **Architecture change is triggered by how learning feels**, not by what the model predicts. That’s the conceptual leap.
 
-### Relation to teacher-as-critic (TCNO) and “condensed” CGSE
-
-The manuscript groups several teacher-centric *-Search* ideas and describes **Teacher as Critic, Not Oracle (TCNO-Search)** as a setting where the teacher **does not supply targets** but **critiques** (e.g. bottleneck severity). **CGSE** is presented as a **condensed** direction that **absorbs** ideas from TCNO and teacher-free self-referential variants, with stated **core novelty**: **no imitation**, **critic-based structural signals**, and **autonomous architecture growth**—still subject in practice to engineering choices (which statistics enter the critic, which operators are allowed).
 
 ### Where this repository stands
 
