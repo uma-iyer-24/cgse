@@ -1,5 +1,5 @@
 # Full CIFAR-10 (50k/10k), 50 epochs — same as phase2_cifar_full but with one widen mid-training.
-# Compare CSV / curves against runs/phase2_cifar_full_metrics.csv (mutation off baseline).
+# Compare CSV / curves against runs/metrics/phase2_cifar_full_metrics.csv (mutation off baseline).
 experiment:
   name: cgse_phase2_cifar_full_mutate
 
@@ -16,7 +16,7 @@ training:
   lr: 0.001
   weight_decay: 0.0005
   seed: 42
-  log_csv: runs/phase2_cifar_full_mutate_metrics.csv
+  log_csv: runs/tier1/metrics/phase2_cifar_full_mutate_metrics.csv
 
 model:
   name: cifar_cnn
@@ -29,4 +29,4 @@ mutation:
   # After finishing this epoch (0-based), widen first Linear (fc1) and refresh optimizer.
   once_after_epoch: 10
   widen_delta: 32
-  log_jsonl: runs/phase2_cifar_full_mutate_mutations.jsonl
+  log_jsonl: runs/tier1/mutations/phase2_cifar_full_mutate_mutations.jsonl

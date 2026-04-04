@@ -15,7 +15,7 @@ training:
   lr: 0.001
   weight_decay: 0.0005
   seed: 42
-  log_csv: runs/phase2_cifar_full_metrics.csv
+  log_csv: runs/tier1/metrics/phase2_cifar_full_metrics.csv
 
 model:
   name: cifar_cnn
@@ -28,4 +28,4 @@ mutation:
   once_after_epoch: 10
   widen_delta: 32
   # When enabled, one JSON line per mutation event (params before/after, layer id, etc.)
-  log_jsonl: runs/phase2_cifar_full_mutations.jsonl
+  log_jsonl: runs/tier1/mutations/phase2_cifar_full_mutations.jsonl

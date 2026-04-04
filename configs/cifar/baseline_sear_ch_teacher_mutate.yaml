@@ -1,10 +1,10 @@
 # SEArch-style *control* baseline for comparison with CGSE:
 # frozen teacher (KD) + same structural mutation schedule as phase2 full mutate.
 #
-# Prerequisite: checkpoints/cgse_phase2_cifar_full.pt (or another CifarGraphNet .pt).
+# Prerequisite: checkpoints/tier1/cgse_phase2_cifar_full.pt (or symlink checkpoints/cgse_phase2_cifar_full.pt).
 #
-# CGSE experiments will mirror this config but disable teacher and use a critic-driven
-# mutation policy instead (once implemented in train.py).
+# CGSE mirror: configs/cifar/phase2_cifar_full_cgse.yaml — same student/mutation budget style,
+# critic.enabled instead of teacher + schedule/once_after (when critic gates timing).
 experiment:
   name: baseline_sear_ch_teacher_mutate
 
@@ -21,7 +21,7 @@ training:
   lr: 0.001
   weight_decay: 0.0005
   seed: 42
-  log_csv: runs/baseline_sear_ch_teacher_mutate_metrics.csv
+  log_csv: runs/tier1/metrics/baseline_sear_ch_teacher_mutate_metrics.csv
 
 model:
   name: cifar_cnn
@@ -31,7 +31,7 @@ device: mps
 
 teacher:
   enabled: true
-  checkpoint: checkpoints/cgse_phase2_cifar_full.pt
+  checkpoint: checkpoints/tier1/cgse_phase2_cifar_full.pt
   temperature: 4.0
   alpha: 0.5
 
@@ -39,4 +39,4 @@ mutation:
   enabled: true
   once_after_epoch: 10
   widen_delta: 32
-  log_jsonl: runs/baseline_sear_ch_teacher_mutate_mutations.jsonl
+  log_jsonl: runs/tier1/mutations/baseline_sear_ch_teacher_mutate_mutations.jsonl

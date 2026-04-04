@@ -2,7 +2,7 @@
 # SEArch-style *control* condition: external teacher soft targets only — compare to
 # baseline_sear_ch_teacher_mutate.yaml (teacher + KD + mutate) and future CGSE (critic, no teacher).
 #
-# Prerequisite: python train.py --config configs/phase2_cifar_full.yaml
+# Prerequisite: checkpoints/tier1/cgse_phase2_cifar_full.pt from phase2_cifar_full run.
 experiment:
   name: cgse_phase3_cifar_kd
 
@@ -19,7 +19,7 @@ training:
   lr: 0.001
   weight_decay: 0.0005
   seed: 42
-  log_csv: runs/phase3_cifar_kd_metrics.csv
+  log_csv: runs/tier1/metrics/phase3_cifar_kd_metrics.csv
 
 model:
   name: cifar_cnn
@@ -30,7 +30,7 @@ device: mps
 # Frozen teacher: must match student class (CifarGraphNet) and num_classes.
 teacher:
   enabled: true
-  checkpoint: checkpoints/cgse_phase2_cifar_full.pt
+  checkpoint: checkpoints/tier1/cgse_phase2_cifar_full.pt
   temperature: 4.0
   alpha: 0.5
 
@@ -38,4 +38,4 @@ mutation:
   enabled: false
   once_after_epoch: 10
   widen_delta: 32
-  log_jsonl: runs/phase3_cifar_kd_mutations.jsonl
+  log_jsonl: runs/tier1/mutations/phase3_cifar_kd_mutations.jsonl

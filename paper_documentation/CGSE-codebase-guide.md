@@ -35,7 +35,7 @@ CGSE’s code is organized around three ideas:
 2. **Structural ops** — Small, testable functions (**widen**, **split/deepen**) that change width/depth while trying to **preserve behavior** (weight copy / identity init) and **fix downstream shapes**.
 3. **Training loop** — Standard supervised learning; optionally **mutate** once or repeatedly, then **refresh the optimizer** so new parameters are trained.
 
-Phase 2 adds **CIFAR-10** and **logging**. Phase 3 adds a **frozen teacher + KD** path (**SEArch-style control**). **CGSE** will **replace the teacher with `StructuralCritic`** for mutation gating only; other multi-objective / hybrid ideas from early notes are **not** in scope for this repo.
+Phase 2 adds **CIFAR-10** and **logging**. Phase 3 adds a **frozen teacher + KD** path (**SEArch-style control**). **CGSE** uses **`StructuralCritic`** (+ **`state_features`**) in **`train.py`** for mutation gating (no teacher); other multi-objective / hybrid ideas from early notes are **not** in scope for this repo.
 
 **Planned backbone progression.** The current student in Phase 2 is a **small CIFAR CNN** (`CifarGraphNet`) because it is simple, fast, and makes mutation plumbing easy to validate. For paper-quality comparisons and later phases, the intended direction is to move the student backbone toward a **ResNet-style model** (still on CIFAR first), while keeping the same mutation/controller interfaces. When that switch happens, update this document’s **Models** and **Execution paths** sections accordingly.
 
@@ -47,7 +47,10 @@ Phase 2 adds **CIFAR-10** and **logging**. Phase 3 adds a **frozen teacher + KD*
 cgse/
 ├── train.py                 # Main training CLI
 ├── requirements.txt         # Python deps (torch, torchvision, PyYAML)
-├── configs/                 # YAML experiments
+├── configs/
+│   ├── cifar/               # CIFAR YAML; `smoke/` = quick subset runs
+│   ├── evolution/           # Tier 1b; `smoke/` = short dev runs
+│   └── synthetic/           # base.yaml (MLP smoke)
 ├── models/                  # GraphModule, StudentNet, CifarGraphNet
 ├── ops/                     # edge_widen, edge_split (mutations)
 ├── training/                # Data loaders, train/eval loop, synthetic data
@@ -55,7 +58,7 @@ cgse/
 ├── scripts/                 # Standalone mutation / robustness demos (not pytest)
 ├── critics/                 # StructuralCritic (CGSE; replaces teacher for structural decisions)
 ├── paper_documentation/     # Paper PDFs, implementation log, this guide
-├── runs/                    # Training CSV / JSONL / console logs (repo root)
+├── runs/                    # tier1|tier1b|smoke|other × metrics|logs|mutations
 ├── checkpoints/             # Saved .pt (some patterns gitignored)
 └── data/                    # Local datasets (gitignored)
 ```
@@ -71,13 +74,13 @@ cgse/
 3. **`models/cifar_student.CifarGraphNet`** is constructed and moved to device; **`utils/graph_validator.validate_forward`** runs a tiny batch sanity check.
 4. **Optimizer** (Adam by default) wraps `model.parameters()`.
 5. Each **epoch**: **`training/loop.train_one_epoch`** → **`training/loop.evaluate`** (test set as “val”). If YAML **`teacher.enabled`**, training loss mixes CE with **KD** against a frozen **`CifarGraphNet`** loaded from **`teacher.checkpoint`**.
-6. Optional **mutation** after a chosen epoch: **`ops/edge_widen.edge_widen`** with explicit first **`Linear`** target, then **`utils/optimizer_utils.refresh_optimizer`**.
-7. **Logging**: optional CSV (`training.log_csv`), optional mutation JSONL (`mutation.log_jsonl` via **`utils/mutation_log.append_mutation_jsonl`**), console prints.
-8. **Checkpoint**: **`utils/checkpoint.save_checkpoint`** writes `checkpoints/<experiment.name>.pt`.
+6. Optional **mutation**: YAML **`once_after_epoch`** (scheduled) **or** **`critic.enabled`** window + Bernoulli/ε-greedy gate → **`ops/edge_widen`**, **`refresh_optimizer`**, optional REINFORCE step on **`StructuralCritic`** (next-epoch Δval).
+7. **Logging**: optional CSV (`training.log_csv`, includes **`critic_score`** when critic on), optional mutation JSONL (`mutation.log_jsonl`), console prints.
+8. **Checkpoint**: **`save_checkpoint`** writes `checkpoints/<experiment.name>.pt`; critic weights → **`checkpoints/<experiment.name>_critic.pt`** when **`critic.enabled`**.
 
 ### 3.2 Legacy / smoke: synthetic MLP
 
-If `model.name` is absent or not `cifar_cnn`, **`train.py`** uses **`models/student.StudentNet`** and **`training/synthetic.build_synthetic_loaders`** — random tensors, useful for quick pipeline checks (`configs/base.yaml`).
+If `model.name` is absent or not `cifar_cnn`, **`train.py`** uses **`models/student.StudentNet`** and **`training/synthetic.build_synthetic_loaders`** — random tensors, useful for quick pipeline checks (`configs/synthetic/base.yaml`).
 
 ### 3.3 Phase 1 validation scripts
 
@@ -89,15 +92,20 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 
 | File | Role |
 |------|------|
-| **`configs/base.yaml`** | Phase-0 style: synthetic data, small MLP (`StudentNet`), `device`, few epochs. No `model.name` → MLP path in `train.py`. |
-| **`configs/phase2_cifar.yaml`** | Default Phase 2: CIFAR subset, `CifarGraphNet`, `training.log_csv`, optional `mutation` (often off for baseline). |
-| **`configs/phase2_cifar_full.yaml`** | Full 50k/10k CIFAR, more epochs — paper baseline runs. |
-| **`configs/phase2_cifar_full_mutate.yaml`** | Same as full baseline + **one** `edge_widen` after epoch 10; separate CSV/JSONL/checkpoint name. |
-| **`configs/phase2_smoke.yaml`** | Tiny subset, CPU-friendly smoke test. |
-| **`configs/phase2_smoke_mutate.yaml`** | Smoke + one widen + mutation JSONL path. |
-| **`configs/phase3_cifar_kd.yaml`** | Full CIFAR + **KD**: frozen teacher from `teacher.checkpoint` (same `CifarGraphNet` arch). |
-| **`configs/phase3_cifar_kd_smoke.yaml`** | Small subset, few epochs, CPU; same teacher block. |
-| **`configs/baseline_sear_ch_teacher_mutate.yaml`** | **SEArch control:** teacher + KD + one widen (same schedule as full mutate). |
+| **`configs/synthetic/base.yaml`** | Phase-0 style: synthetic data, small MLP (`StudentNet`), `device`, few epochs. No `model.name` → MLP path in `train.py`. |
+| **`configs/cifar/phase2_cifar.yaml`** | Default Phase 2: CIFAR subset, `CifarGraphNet`, `training.log_csv`, optional `mutation` (often off for baseline). |
+| **`configs/cifar/phase2_cifar_full.yaml`** | Full 50k/10k CIFAR, more epochs — paper baseline runs. |
+| **`configs/cifar/phase2_cifar_full_mutate.yaml`** | Same as full baseline + **one** `edge_widen` after epoch 10; separate CSV/JSONL/checkpoint name. |
+| **`configs/cifar/phase2_cifar_full_cgse.yaml`** | Full CIFAR, **no teacher**; **`critic:`** gates one widen inside a window + REINFORCE. |
+| **`configs/cifar/smoke/phase2_cifar_cgse_smoke.yaml`** | Small subset/epochs for fast CGSE smoke. |
+| **`configs/cifar/smoke/phase2_smoke.yaml`** | Tiny subset, CPU-friendly smoke test. |
+| **`configs/cifar/smoke/phase2_smoke_mutate.yaml`** | Smoke + one widen + mutation JSONL path. |
+| **`configs/cifar/phase3_cifar_kd.yaml`** | Full CIFAR + **KD**: frozen teacher from `teacher.checkpoint` (same `CifarGraphNet` arch). |
+| **`configs/cifar/smoke/phase3_cifar_kd_smoke.yaml`** | Small subset, few epochs, CPU; same teacher block. |
+| **`configs/cifar/baseline_sear_ch_teacher_mutate.yaml`** | **SEArch control:** teacher + KD + one widen (same schedule as full mutate). |
+| **`configs/evolution/evolution_tier1b_schedule.yaml`** | Tier 1b: fixed multi-op schedule, full CIFAR. |
+| **`configs/evolution/evolution_tier1b_critic.yaml`** | Tier 1b: discrete critic over legal ops. |
+| **`configs/evolution/smoke/evolution_tier1b_smoke.yaml`**, **`configs/evolution/smoke/evolution_tier1b_critic_smoke.yaml`** | Small subset / few epochs for pipeline checks. |
 
 **Cross-cutting YAML sections:**
 
@@ -145,7 +153,7 @@ Scripts under **`scripts/`** import **`models.graph.GraphModule`**, **`ops.edge_
 | File | Role |
 |------|------|
 | **`ops/edge_widen.py`** | **`edge_widen(model, target_node_id=None, delta=...)`** — widen a `Linear`’s output by `delta`, copy existing weights into the top rows, then **resize every downstream `Linear`** to match new input width. Returns `model`. If `target_node_id` is `None`, picks the **first** `Linear` in `execution_order`. |
-| **`ops/edge_split.py`** | **`edge_split(model, target_node_id=None)`** — insert an **identity** `Linear(in_f, in_f)` **before** the target linear in the order (deepen path). Forbids splitting the **last** layer (output). Uses **`_infer_input_dim`** to get correct fan-in. |
+| **`ops/edge_split.py`** | **`edge_split(model, target_node_id=None)`** — insert an **identity** `Linear(in_f, in_f)` **before** the target linear in the order (deepen path). Forbids splitting the **last** layer (output). Fan-in **`in_f`** is the target linear’s **`in_features`** (correct after `Flatten` / conv stacks). |
 | **`ops/__init__.py`** | Package marker (may be empty). |
 
 **Invariant:** After these ops, **`utils/graph_validator.validate_graph`** (linear-only walk) or **`validate_forward`** (full forward) should be used depending on architecture.
@@ -195,8 +203,7 @@ Runnable demos / stress tests (invoke with `python scripts/<name>.py` from repo 
 
 | Path | Status |
 |------|--------|
-| **`tests/test_graph_ops.py`** | **Empty placeholder** — room for future **pytest** unit tests (`pytest tests/`). |
-| **`critics/critic.py`** | **`StructuralCritic`** — small MLP stub; **CGSE** will use it **instead of** the teacher to score structural actions (training + `train.py` wiring **TBD**). |
+| **`tests/test_graph_ops.py`** | **Pytest:** KD formula, checkpoint round-trip, **`edge_widen` / `edge_split`**, teacher+KD smoke, critic state (`pytest tests/test_graph_ops.py`). |
 
 ---
 
@@ -206,7 +213,7 @@ Runnable demos / stress tests (invoke with `python scripts/<name>.py` from repo 
 |------|------|
 | **`data/`** | CIFAR download cache — **gitignored** (see root `.gitignore`). |
 | **`checkpoints/`** | Training outputs; **`checkpoints/cgse_*.pt`** pattern gitignored; older **`phase0.pt`** may still be tracked from earlier commits. |
-| **`runs/`** (repo root) | CSV, JSONL, `.log` files — **committed** when you want a paper trail (can grow; consider rotating for very large runs). See **`runs/README.md`**. |
+| **`runs/`** (repo root) | **`metrics/`**, **`logs/`**, **`mutations/`**; top-level **symlinks** keep legacy paths working. See **`runs/README.md`**. |
 | **`__pycache__/`, `.ipynb_checkpoints/`** | Should not be committed — in `.gitignore`. |
 
 ---
@@ -215,7 +222,7 @@ Runnable demos / stress tests (invoke with `python scripts/<name>.py` from repo 
 
 ```mermaid
 flowchart TD
-  subgraph configs [configs/*.yaml]
+  subgraph configs [YAML under configs/]
     Y[YAML]
   end
   train[train.py]
@@ -245,6 +252,8 @@ flowchart TD
 
 **Rule of thumb:** **`models/graph.py`** + **`ops/*`** define *what can change*; **`training/*`** + **`train.py`** define *how we learn*; **`utils/*`** define *reproducibility and observability*.
 
+**Planned (Tier 1b).** Multi-stage training, **param/FLOP budget**, **multiple** mutations, **discrete (site × operator)** critic — spec and checklist in **[`SEArch-baseline-and-CGSE-evaluation-plan.md`](SEArch-baseline-and-CGSE-evaluation-plan.md) §7**. Update this guide when `train.py` gains stage loops and new ops.
+
 ---
 
 ## Document history
@@ -257,5 +266,6 @@ flowchart TD
 | 2026-04-04 | Cross-link **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)** from the purpose blurb (narrative + rationale companion). |
 | 2026-04-04 | Phase 3: **`teacher`** YAML, KD in **`training/loop.py`**, **`load_model_weights`**, configs **`phase3_cifar_kd*.yaml`**. |
 | 2026-04-04 | Scope: **teacher vs critic** only; **`baseline_sear_ch_teacher_mutate.yaml`**, **`StructuralCritic`** in **`critics/`**. |
+| 2026-04-04 | **Tier 1b** roadmap: pointer to **[`SEArch-baseline-and-CGSE-evaluation-plan.md`](SEArch-baseline-and-CGSE-evaluation-plan.md) §7** (multi-stage, multi-op, critic v2). |
 
 *Append a row whenever this guide is meaningfully updated.*

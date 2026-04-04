@@ -1,0 +1,54 @@
+[repro] Using --seed 42; experiment_name=baseline_sear_ch_teacher_mutate_seed42
+[teacher] Loaded frozen teacher from checkpoints/cgse_phase2_cifar_full.pt (KD training).
+Epoch 000 | train_loss 2.5123 | train_acc 0.5394 | val_loss 1.0401 | val_acc 0.6639 | kd T=4.0 α=0.5
+Epoch 001 | train_loss 1.4286 | train_acc 0.6754 | val_loss 0.8855 | val_acc 0.7143 | kd T=4.0 α=0.5
+Epoch 002 | train_loss 1.1404 | train_acc 0.7164 | val_loss 0.7324 | val_acc 0.7553 | kd T=4.0 α=0.5
+Epoch 003 | train_loss 0.9640 | train_acc 0.7478 | val_loss 0.7629 | val_acc 0.7453 | kd T=4.0 α=0.5
+Epoch 004 | train_loss 0.8716 | train_acc 0.7644 | val_loss 0.7465 | val_acc 0.7573 | kd T=4.0 α=0.5
+Epoch 005 | train_loss 0.8026 | train_acc 0.7766 | val_loss 0.6553 | val_acc 0.7860 | kd T=4.0 α=0.5
+Epoch 006 | train_loss 0.7473 | train_acc 0.7869 | val_loss 0.6567 | val_acc 0.7880 | kd T=4.0 α=0.5
+Epoch 007 | train_loss 0.7080 | train_acc 0.7949 | val_loss 0.5862 | val_acc 0.8061 | kd T=4.0 α=0.5
+Epoch 008 | train_loss 0.6747 | train_acc 0.8027 | val_loss 0.5761 | val_acc 0.8065 | kd T=4.0 α=0.5
+Epoch 009 | train_loss 0.6456 | train_acc 0.8100 | val_loss 0.5564 | val_acc 0.8137 | kd T=4.0 α=0.5
+[mutation] (schedule) Applied edge_widen(fc1, delta=32) after epoch 10; params 620810 -> 686698; optimizer refreshed.
+Epoch 010 | train_loss 0.6236 | train_acc 0.8153 | val_loss 0.5557 | val_acc 0.8168 | mutation=on | kd T=4.0 α=0.5
+Epoch 011 | train_loss 0.6113 | train_acc 0.8155 | val_loss 0.5440 | val_acc 0.8180 | mutation=on | kd T=4.0 α=0.5
+Epoch 012 | train_loss 0.5874 | train_acc 0.8201 | val_loss 0.6055 | val_acc 0.7993 | mutation=on | kd T=4.0 α=0.5
+Epoch 013 | train_loss 0.5694 | train_acc 0.8247 | val_loss 0.5651 | val_acc 0.8119 | mutation=on | kd T=4.0 α=0.5
+Epoch 014 | train_loss 0.5573 | train_acc 0.8270 | val_loss 0.5350 | val_acc 0.8177 | mutation=on | kd T=4.0 α=0.5
+Epoch 015 | train_loss 0.5488 | train_acc 0.8280 | val_loss 0.5868 | val_acc 0.8075 | mutation=on | kd T=4.0 α=0.5
+Epoch 016 | train_loss 0.5345 | train_acc 0.8341 | val_loss 0.4989 | val_acc 0.8373 | mutation=on | kd T=4.0 α=0.5
+Epoch 017 | train_loss 0.5201 | train_acc 0.8358 | val_loss 0.5105 | val_acc 0.8293 | mutation=on | kd T=4.0 α=0.5
+Epoch 018 | train_loss 0.5107 | train_acc 0.8376 | val_loss 0.5032 | val_acc 0.8313 | mutation=on | kd T=4.0 α=0.5
+Epoch 019 | train_loss 0.5027 | train_acc 0.8405 | val_loss 0.4972 | val_acc 0.8341 | mutation=on | kd T=4.0 α=0.5
+Epoch 020 | train_loss 0.4922 | train_acc 0.8421 | val_loss 0.5169 | val_acc 0.8294 | mutation=on | kd T=4.0 α=0.5
+Epoch 021 | train_loss 0.4859 | train_acc 0.8427 | val_loss 0.4780 | val_acc 0.8394 | mutation=on | kd T=4.0 α=0.5
+Epoch 022 | train_loss 0.4788 | train_acc 0.8462 | val_loss 0.5014 | val_acc 0.8315 | mutation=on | kd T=4.0 α=0.5
+Epoch 023 | train_loss 0.4734 | train_acc 0.8457 | val_loss 0.5366 | val_acc 0.8227 | mutation=on | kd T=4.0 α=0.5
+Epoch 024 | train_loss 0.4635 | train_acc 0.8482 | val_loss 0.4928 | val_acc 0.8369 | mutation=on | kd T=4.0 α=0.5
+Epoch 025 | train_loss 0.4543 | train_acc 0.8477 | val_loss 0.4617 | val_acc 0.8456 | mutation=on | kd T=4.0 α=0.5
+Epoch 026 | train_loss 0.4515 | train_acc 0.8504 | val_loss 0.5014 | val_acc 0.8321 | mutation=on | kd T=4.0 α=0.5
+Epoch 027 | train_loss 0.4493 | train_acc 0.8496 | val_loss 0.5453 | val_acc 0.8267 | mutation=on | kd T=4.0 α=0.5
+Epoch 028 | train_loss 0.4358 | train_acc 0.8522 | val_loss 0.4840 | val_acc 0.8377 | mutation=on | kd T=4.0 α=0.5
+Epoch 029 | train_loss 0.4343 | train_acc 0.8521 | val_loss 0.4798 | val_acc 0.8396 | mutation=on | kd T=4.0 α=0.5
+Epoch 030 | train_loss 0.4293 | train_acc 0.8533 | val_loss 0.4814 | val_acc 0.8398 | mutation=on | kd T=4.0 α=0.5
+Epoch 031 | train_loss 0.4256 | train_acc 0.8542 | val_loss 0.4741 | val_acc 0.8419 | mutation=on | kd T=4.0 α=0.5
+Epoch 032 | train_loss 0.4225 | train_acc 0.8546 | val_loss 0.4772 | val_acc 0.8391 | mutation=on | kd T=4.0 α=0.5
+Epoch 033 | train_loss 0.4251 | train_acc 0.8530 | val_loss 0.4737 | val_acc 0.8443 | mutation=on | kd T=4.0 α=0.5
+Epoch 034 | train_loss 0.4145 | train_acc 0.8559 | val_loss 0.4794 | val_acc 0.8407 | mutation=on | kd T=4.0 α=0.5
+Epoch 035 | train_loss 0.4096 | train_acc 0.8570 | val_loss 0.4708 | val_acc 0.8447 | mutation=on | kd T=4.0 α=0.5
+Epoch 036 | train_loss 0.4084 | train_acc 0.8564 | val_loss 0.4883 | val_acc 0.8398 | mutation=on | kd T=4.0 α=0.5
+Epoch 037 | train_loss 0.4033 | train_acc 0.8557 | val_loss 0.4552 | val_acc 0.8484 | mutation=on | kd T=4.0 α=0.5
+Epoch 038 | train_loss 0.4015 | train_acc 0.8565 | val_loss 0.4817 | val_acc 0.8405 | mutation=on | kd T=4.0 α=0.5
+Epoch 039 | train_loss 0.3989 | train_acc 0.8579 | val_loss 0.4709 | val_acc 0.8447 | mutation=on | kd T=4.0 α=0.5
+Epoch 040 | train_loss 0.3922 | train_acc 0.8585 | val_loss 0.4700 | val_acc 0.8447 | mutation=on | kd T=4.0 α=0.5
+Epoch 041 | train_loss 0.3915 | train_acc 0.8591 | val_loss 0.4471 | val_acc 0.8514 | mutation=on | kd T=4.0 α=0.5
+Epoch 042 | train_loss 0.3895 | train_acc 0.8582 | val_loss 0.4870 | val_acc 0.8406 | mutation=on | kd T=4.0 α=0.5
+Epoch 043 | train_loss 0.3883 | train_acc 0.8589 | val_loss 0.5041 | val_acc 0.8368 | mutation=on | kd T=4.0 α=0.5
+Epoch 044 | train_loss 0.3861 | train_acc 0.8598 | val_loss 0.4668 | val_acc 0.8449 | mutation=on | kd T=4.0 α=0.5
+Epoch 045 | train_loss 0.3809 | train_acc 0.8628 | val_loss 0.4500 | val_acc 0.8533 | mutation=on | kd T=4.0 α=0.5
+Epoch 046 | train_loss 0.3788 | train_acc 0.8598 | val_loss 0.4661 | val_acc 0.8435 | mutation=on | kd T=4.0 α=0.5
+Epoch 047 | train_loss 0.3853 | train_acc 0.8604 | val_loss 0.4922 | val_acc 0.8392 | mutation=on | kd T=4.0 α=0.5
+Epoch 048 | train_loss 0.3760 | train_acc 0.8609 | val_loss 0.4541 | val_acc 0.8455 | mutation=on | kd T=4.0 α=0.5
+Epoch 049 | train_loss 0.3726 | train_acc 0.8613 | val_loss 0.4824 | val_acc 0.8422 | mutation=on | kd T=4.0 α=0.5
+Saved checkpoint to checkpoints/baseline_sear_ch_teacher_mutate_seed42.pt

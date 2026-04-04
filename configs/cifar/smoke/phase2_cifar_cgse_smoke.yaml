@@ -1,0 +1,39 @@
+# Fast CGSE smoke: subset CIFAR, short run, critic window forces mutate by epoch 4.
+experiment:
+  name: cgse_phase2_cifar_cgse_smoke
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 2
+  subset_train: 2048
+  subset_test: 512
+
+training:
+  epochs: 6
+  batch_size: 128
+  lr: 0.001
+  weight_decay: 0.0005
+  seed: 42
+  log_csv: runs/smoke/metrics/phase2_cifar_cgse_smoke_metrics.csv
+
+model:
+  name: cifar_cnn
+  num_classes: 10
+
+device: cpu
+
+mutation:
+  enabled: true
+  widen_delta: 16
+  log_jsonl: runs/smoke/mutations/phase2_cifar_cgse_smoke_mutations.jsonl
+
+critic:
+  enabled: true
+  hidden_dim: 16
+  lr: 0.05
+  weight_decay: 0.0
+  epsilon: 0.5
+  window_start_epoch: 1
+  window_end_epoch: 4
+  force_mutate_end_of_window: true

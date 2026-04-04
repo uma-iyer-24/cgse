@@ -9,3 +9,5 @@ data/
 
 # Phase 2+ experiment checkpoints (large binaries)
 checkpoints/cgse_*.pt
+checkpoints/*/cgse_*.pt
+checkpoints/*/baseline_*.pt

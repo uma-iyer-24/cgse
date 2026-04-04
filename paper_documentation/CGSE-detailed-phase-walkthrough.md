@@ -55,7 +55,7 @@
 
 **Files.**
 
-- **`configs/base.yaml`** — Default **synthetic / Phase-0 style** run: random tensor “dataset,” small MLP dimensions, few epochs.
+- **`configs/synthetic/base.yaml`** — Default **synthetic / Phase-0 style** run: random tensor “dataset,” small MLP dimensions, few epochs.
 - **`train.py`** — **`load_config`**, argument parser with **`--config`** (default points at Phase 2 CIFAR config today) and optional **`--device`** override.
 
 ### Step 2.3 — Synthetic data for the MLP student
@@ -136,7 +136,7 @@
 
 **Files.**
 
-- **`ops/edge_split.py`** — **`edge_split`**, input-dimension inference helpers.
+- **`ops/edge_split.py`** — **`edge_split`** (identity insert uses the target linear’s **`in_features`**).
 
 ### Step 3.4 — Validation after structural edits
 
@@ -172,17 +172,17 @@
 - **`scripts/test_robustness.py`** — Sequences of mutations + deterministic checks.
 - **`scripts/test_graph_visual.py`**, **`scripts/test_graph_ascii.py`** — Human-readable structure dumps.
 
-### Step 3.7 — Structural critic module (CGSE stub)
+### Step 3.7 — Structural critic (CGSE)
 
-**What we did.** Added **`critics/critic.py`** with **`StructuralCritic`**, a small MLP mapping a **state vector** to a **scalar score** — intended to **replace the teacher** for **structural** decisions only (not class logits). **`train.py`** integration is **still to do**.
+**What we did.** **`critics/critic.py`** — **`StructuralCritic`** (MLP logit for mutate probability). **`critics/state_features.py`** — **`build_critic_state`** (8-D stats). **`train.py`** — YAML **`critic:`** window, ε-greedy + Bernoulli action, **REINFORCE** on one-step-ahead Δval after a widen; **`teacher.enabled`** and **`critic.enabled`** are mutually exclusive.
 
-**Why.** Makes the **CGSE** arm concrete in the file tree while the **SEArch-style teacher** path is implemented first.
+**Why.** **CGSE** replaces the teacher with **internal training statistics** for **when** to apply the same **`edge_widen`** operator (classification remains label CE).
 
 **Files.**
 
-- **`critics/critic.py`**, **`critics/__init__.py`**
+- **`critics/critic.py`**, **`critics/state_features.py`**, **`critics/__init__.py`**, **`train.py`**
 
-**Phase 1 status note.** Core **ops + graph + optimizer refresh + scripts** are in place; optional **API consolidation** or **pytest** expansion (see empty **`tests/test_graph_ops.py`**) can still grow.
+**Phase 1 status note.** Core **ops + graph + optimizer refresh + scripts** are in place; optional **API consolidation** can still grow; **`tests/test_graph_ops.py`** holds **pytest** coverage.
 
 ---
 
@@ -271,7 +271,7 @@
 **Files.**
 
 - **`utils/mutation_log.py`**
-- **`configs/phase2_smoke_mutate.yaml`**, **`configs/phase2_cifar_full_mutate.yaml`** — Example **`mutation.log_jsonl`** paths.
+- **`configs/cifar/smoke/phase2_smoke_mutate.yaml`**, **`configs/cifar/phase2_cifar_full_mutate.yaml`** — Example **`mutation.log_jsonl`** paths.
 
 ### Step 4.8 — Config files for different experiment scales
 
@@ -279,14 +279,14 @@
 
 | Config file | Intent |
 |-------------|--------|
-| **`configs/phase2_cifar.yaml`** | Practical default Phase 2 run (often subset / moderate epochs—tune as needed). |
-| **`configs/phase2_cifar_full.yaml`** | **Full** train/test CIFAR, longer training—**fixed architecture baseline** (`mutation.enabled: false`). |
-| **`configs/phase2_cifar_full_mutate.yaml`** | **Same** as full baseline (same seed and hyperparameters) but **one widen** after epoch 10; **separate** CSV, JSONL, and **`experiment.name`** so artifacts do not overwrite the baseline. |
-| **`configs/phase2_smoke.yaml`** | Tiny data, CPU-friendly **sanity** run. |
-| **`configs/phase2_smoke_mutate.yaml`** | Smoke + mutation + JSONL path test. |
-| **`configs/phase3_cifar_kd.yaml`** | Full CIFAR + KD from a saved student checkpoint used as teacher. |
-| **`configs/phase3_cifar_kd_smoke.yaml`** | Tiny subset KD smoke. |
-| **`configs/base.yaml`** | Synthetic MLP path (no CIFAR). |
+| **`configs/cifar/phase2_cifar.yaml`** | Practical default Phase 2 run (often subset / moderate epochs—tune as needed). |
+| **`configs/cifar/phase2_cifar_full.yaml`** | **Full** train/test CIFAR, longer training—**fixed architecture baseline** (`mutation.enabled: false`). |
+| **`configs/cifar/phase2_cifar_full_mutate.yaml`** | **Same** as full baseline (same seed and hyperparameters) but **one widen** after epoch 10; **separate** CSV, JSONL, and **`experiment.name`** so artifacts do not overwrite the baseline. |
+| **`configs/cifar/smoke/phase2_smoke.yaml`** | Tiny data, CPU-friendly **sanity** run. |
+| **`configs/cifar/smoke/phase2_smoke_mutate.yaml`** | Smoke + mutation + JSONL path test. |
+| **`configs/cifar/phase3_cifar_kd.yaml`** | Full CIFAR + KD from a saved student checkpoint used as teacher. |
+| **`configs/cifar/smoke/phase3_cifar_kd_smoke.yaml`** | Tiny subset KD smoke. |
+| **`configs/synthetic/base.yaml`** | Synthetic MLP path (no CIFAR). |
 
 **Why.** **Separation of concerns**: baseline vs ablation is a **config diff**, not a code fork—critical for **Methods** sections and **reproducibility**.
 
@@ -294,19 +294,19 @@
 
 ### Step 4.9 — Recorded baseline result (mutation off)
 
-**What we did.** Ran **`configs/phase2_cifar_full.yaml`** for **50 epochs** on full CIFAR-10, **mutation disabled**, and recorded **final test accuracy ~0.845** and **~620k** parameters in the implementation log, with artifacts under **`runs/`**.
+**What we did.** Ran **`configs/cifar/phase2_cifar_full.yaml`** for **50 epochs** on full CIFAR-10, **mutation disabled**, and recorded **final test accuracy ~0.845** and **~620k** parameters in the implementation log, with artifacts under **`runs/`**.
 
 **Why.** Every later claim about “self-evolving” or **mutation impact** needs a **fixed-architecture** reference at **matched** data and training budget.
 
 **Files.**
 
-- **`runs/phase2_cifar_full_metrics.csv`** — Per-epoch metrics.
-- **`runs/train_phase2_cifar_full.log`** — Console capture (if saved).
+- **`runs/metrics/phase2_cifar_full_metrics.csv`** — Per-epoch metrics.
+- **`runs/logs/train_phase2_cifar_full.log`** — Console capture (if saved).
 - **`checkpoints/cgse_phase2_cifar_full.pt`** — Local checkpoint (large; typically **not** committed—see **`.gitignore`** patterns).
 
 **Phase 2 status note.** CIFAR path, logging, and scheduled mutation are **working**.
 
-**Phase 3 (started).** **`teacher`** YAML + **`load_model_weights`**: frozen **`CifarGraphNet`**, **KD** in **`training/loop.py`**; **`baseline_sear_ch_teacher_mutate.yaml`** for **teacher + mutate** control. **CGSE:** wire **`StructuralCritic`** into **`train.py`** (see §6).
+**Phase 3 (started).** **`teacher`** YAML + **`load_model_weights`**: frozen **`CifarGraphNet`**, **KD** in **`training/loop.py`**; **`baseline_sear_ch_teacher_mutate.yaml`** for **teacher + mutate** control. **CGSE:** **`critic:`** + **`StructuralCritic`** in **`train.py`** (see Step 3.7, **`phase2_cifar_full_cgse.yaml`**).
 
 ---
 
@@ -377,15 +377,14 @@
 
 ## 6. What is deliberately not done yet (later phases)
 
-- **CGSE integration:** **`StructuralCritic`** exists as a stub; **training** the critic and **replacing YAML mutation timing** with **critic scores** in **`train.py`** is the main open item.
+- **Richer critic objectives** (multi-step returns, learned baselines, operator choice beyond one **`edge_widen`**).
 - **Random mutation** control matched for compute (optional ablation).
 - **Richer checkpoint resume** (Phase 0 partial).
 - **ResNet-style backbone** (optional stronger student)—see **`CGSE-codebase-guide.md`**.
 
 **Files for future work.**
 
-- **`critics/critic.py`**, **`train.py`** — critic loop and mutation gating.
-- **`tests/test_graph_ops.py`** — placeholder for pytest.
+- **`train.py`**, **`critics/*`** — extend policy / state / rewards as experiments demand.
 - PDFs under **`paper_documentation/`** for narrative context only; **implementation scope** is **teacher vs critic**, not every variant in those notes.
 
 ---
@@ -394,13 +393,14 @@
 
 | You want… | Config (example) | Main code path | Typical outputs |
 |-----------|------------------|----------------|-----------------|
-| Synthetic MLP smoke | **`configs/base.yaml`** | **`train.py`** → **`training/synthetic.py`** → **`StudentNet`** | Checkpoint path from **`experiment.name`** |
-| Phase 2 CIFAR (default file) | **`configs/phase2_cifar.yaml`** | **`train.py`** → **`training/data.py`** → **`CifarGraphNet`** | CSV if **`training.log_csv`** set |
-| Full baseline (paper) | **`configs/phase2_cifar_full.yaml`** | Same as above, **`mutation.enabled: false`** | **`runs/phase2_cifar_full_metrics.csv`**, local **`.pt`** |
-| Full + one widen | **`configs/phase2_cifar_full_mutate.yaml`** | Same + **`edge_widen`** after epoch 10 | **`*_mutate_metrics.csv`**, **`*_mutations.jsonl`**, local **`.pt`** |
-| Teacher + KD (fixed arch) | **`configs/phase3_cifar_kd.yaml`** | **`train.py`** + **`training/loop.py`** KD | **`runs/phase3_cifar_kd_metrics.csv`**, local **`.pt`** |
-| SEArch control: teacher + KD + widen | **`configs/baseline_sear_ch_teacher_mutate.yaml`** | KD + **`edge_widen`** after epoch 10 | **`runs/baseline_sear_ch_teacher_mutate_*.csv/jsonl`** |
-| Fast CPU check | **`configs/phase2_smoke.yaml`** | Subsets in **`data`** section | Small CSV / logs |
+| Synthetic MLP smoke | **`configs/synthetic/base.yaml`** | **`train.py`** → **`training/synthetic.py`** → **`StudentNet`** | Checkpoint path from **`experiment.name`** |
+| Phase 2 CIFAR (default file) | **`configs/cifar/phase2_cifar.yaml`** | **`train.py`** → **`training/data.py`** → **`CifarGraphNet`** | CSV if **`training.log_csv`** set |
+| Full baseline (paper) | **`configs/cifar/phase2_cifar_full.yaml`** | Same as above, **`mutation.enabled: false`** | **`runs/metrics/phase2_cifar_full_metrics.csv`**, local **`.pt`** |
+| Full + one widen | **`configs/cifar/phase2_cifar_full_mutate.yaml`** | Same + **`edge_widen`** after epoch 10 | **`runs/metrics/*_mutate_metrics.csv`**, **`runs/mutations/*_mutations.jsonl`**, local **`.pt`** |
+| Teacher + KD (fixed arch) | **`configs/cifar/phase3_cifar_kd.yaml`** | **`train.py`** + **`training/loop.py`** KD | **`runs/metrics/phase3_cifar_kd_metrics.csv`**, local **`.pt`** |
+| SEArch control: teacher + KD + widen | **`configs/cifar/baseline_sear_ch_teacher_mutate.yaml`** | KD + **`edge_widen`** after epoch 10 | **`runs/metrics/baseline_sear_ch_teacher_mutate_*.csv`**, **`runs/mutations/…jsonl`** |
+| CGSE: critic-gated widen | **`configs/cifar/phase2_cifar_full_cgse.yaml`** | No teacher; **`critic:`** window + REINFORCE | **`runs/metrics/phase2_cifar_full_cgse_*.csv`**, **`runs/mutations/…jsonl`**, **`_critic.pt`** |
+| Fast CPU check | **`configs/cifar/smoke/phase2_smoke.yaml`** | Subsets in **`data`** section | Small CSV / logs |
 
 ---
 
@@ -412,4 +412,4 @@ When you **add a phase** or **change behavior** (new model, new mutation trigger
 2. Update **[`CGSE-codebase-guide.md`](CGSE-codebase-guide.md)** tables and execution paths.
 3. Update **this walkthrough** so the **narrative** stays true—especially §4–§7 and the config table.
 
-*Last aligned with repository layout through Phase 3 teacher path and CGSE stub: 2026-04-04.*
+*Last aligned with repository layout through Phase 3 teacher path and CGSE critic in `train.py`: 2026-04-04.*

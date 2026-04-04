@@ -1,0 +1,53 @@
+[repro] Using --seed 41; experiment_name=cgse_phase2_cifar_full_mutate_seed41
+Epoch 000 | train_loss 1.3956 | train_acc 0.4932 | val_loss 1.1399 | val_acc 0.6004
+Epoch 001 | train_loss 1.0273 | train_acc 0.6369 | val_loss 0.8709 | val_acc 0.6958
+Epoch 002 | train_loss 0.8932 | train_acc 0.6841 | val_loss 0.9155 | val_acc 0.6829
+Epoch 003 | train_loss 0.8197 | train_acc 0.7119 | val_loss 0.7518 | val_acc 0.7356
+Epoch 004 | train_loss 0.7618 | train_acc 0.7332 | val_loss 0.7579 | val_acc 0.7400
+Epoch 005 | train_loss 0.7257 | train_acc 0.7467 | val_loss 0.6895 | val_acc 0.7612
+Epoch 006 | train_loss 0.6857 | train_acc 0.7577 | val_loss 0.6793 | val_acc 0.7619
+Epoch 007 | train_loss 0.6660 | train_acc 0.7670 | val_loss 0.7354 | val_acc 0.7505
+Epoch 008 | train_loss 0.6480 | train_acc 0.7733 | val_loss 0.6283 | val_acc 0.7854
+Epoch 009 | train_loss 0.6200 | train_acc 0.7811 | val_loss 0.6298 | val_acc 0.7806
+[mutation] (schedule) Applied edge_widen(fc1, delta=32) after epoch 10; params 620810 -> 686698; optimizer refreshed.
+Epoch 010 | train_loss 0.6078 | train_acc 0.7869 | val_loss 0.5829 | val_acc 0.7991 | mutation=on
+Epoch 011 | train_loss 0.5941 | train_acc 0.7910 | val_loss 0.5841 | val_acc 0.7971 | mutation=on
+Epoch 012 | train_loss 0.5727 | train_acc 0.7980 | val_loss 0.5766 | val_acc 0.8047 | mutation=on
+Epoch 013 | train_loss 0.5655 | train_acc 0.8015 | val_loss 0.5653 | val_acc 0.8066 | mutation=on
+Epoch 014 | train_loss 0.5500 | train_acc 0.8078 | val_loss 0.6175 | val_acc 0.7918 | mutation=on
+Epoch 015 | train_loss 0.5400 | train_acc 0.8105 | val_loss 0.5640 | val_acc 0.8069 | mutation=on
+Epoch 016 | train_loss 0.5321 | train_acc 0.8152 | val_loss 0.5711 | val_acc 0.8046 | mutation=on
+Epoch 017 | train_loss 0.5184 | train_acc 0.8190 | val_loss 0.5678 | val_acc 0.8114 | mutation=on
+Epoch 018 | train_loss 0.5177 | train_acc 0.8205 | val_loss 0.6880 | val_acc 0.7650 | mutation=on
+Epoch 019 | train_loss 0.4998 | train_acc 0.8241 | val_loss 0.5897 | val_acc 0.8032 | mutation=on
+Epoch 020 | train_loss 0.4942 | train_acc 0.8257 | val_loss 0.5468 | val_acc 0.8135 | mutation=on
+Epoch 021 | train_loss 0.4890 | train_acc 0.8288 | val_loss 0.5169 | val_acc 0.8219 | mutation=on
+Epoch 022 | train_loss 0.4822 | train_acc 0.8328 | val_loss 0.4998 | val_acc 0.8323 | mutation=on
+Epoch 023 | train_loss 0.4799 | train_acc 0.8329 | val_loss 0.5870 | val_acc 0.8025 | mutation=on
+Epoch 024 | train_loss 0.4683 | train_acc 0.8376 | val_loss 0.5091 | val_acc 0.8247 | mutation=on
+Epoch 025 | train_loss 0.4627 | train_acc 0.8383 | val_loss 0.5089 | val_acc 0.8297 | mutation=on
+Epoch 026 | train_loss 0.4578 | train_acc 0.8389 | val_loss 0.5205 | val_acc 0.8252 | mutation=on
+Epoch 027 | train_loss 0.4482 | train_acc 0.8436 | val_loss 0.5367 | val_acc 0.8160 | mutation=on
+Epoch 028 | train_loss 0.4471 | train_acc 0.8444 | val_loss 0.5421 | val_acc 0.8181 | mutation=on
+Epoch 029 | train_loss 0.4459 | train_acc 0.8433 | val_loss 0.5464 | val_acc 0.8135 | mutation=on
+Epoch 030 | train_loss 0.4397 | train_acc 0.8462 | val_loss 0.4926 | val_acc 0.8304 | mutation=on
+Epoch 031 | train_loss 0.4345 | train_acc 0.8488 | val_loss 0.5053 | val_acc 0.8229 | mutation=on
+Epoch 032 | train_loss 0.4350 | train_acc 0.8476 | val_loss 0.4973 | val_acc 0.8334 | mutation=on
+Epoch 033 | train_loss 0.4233 | train_acc 0.8520 | val_loss 0.5043 | val_acc 0.8251 | mutation=on
+Epoch 034 | train_loss 0.4257 | train_acc 0.8504 | val_loss 0.5025 | val_acc 0.8261 | mutation=on
+Epoch 035 | train_loss 0.4239 | train_acc 0.8514 | val_loss 0.5036 | val_acc 0.8255 | mutation=on
+Epoch 036 | train_loss 0.4201 | train_acc 0.8540 | val_loss 0.4893 | val_acc 0.8289 | mutation=on
+Epoch 037 | train_loss 0.4148 | train_acc 0.8546 | val_loss 0.5576 | val_acc 0.8109 | mutation=on
+Epoch 038 | train_loss 0.4158 | train_acc 0.8535 | val_loss 0.5243 | val_acc 0.8294 | mutation=on
+Epoch 039 | train_loss 0.4062 | train_acc 0.8566 | val_loss 0.5076 | val_acc 0.8317 | mutation=on
+Epoch 040 | train_loss 0.4057 | train_acc 0.8592 | val_loss 0.4975 | val_acc 0.8300 | mutation=on
+Epoch 041 | train_loss 0.4003 | train_acc 0.8592 | val_loss 0.4778 | val_acc 0.8362 | mutation=on
+Epoch 042 | train_loss 0.4032 | train_acc 0.8599 | val_loss 0.5162 | val_acc 0.8265 | mutation=on
+Epoch 043 | train_loss 0.3935 | train_acc 0.8629 | val_loss 0.5083 | val_acc 0.8305 | mutation=on
+Epoch 044 | train_loss 0.3919 | train_acc 0.8639 | val_loss 0.4697 | val_acc 0.8406 | mutation=on
+Epoch 045 | train_loss 0.3942 | train_acc 0.8631 | val_loss 0.5136 | val_acc 0.8287 | mutation=on
+Epoch 046 | train_loss 0.3912 | train_acc 0.8644 | val_loss 0.4731 | val_acc 0.8420 | mutation=on
+Epoch 047 | train_loss 0.3869 | train_acc 0.8648 | val_loss 0.4830 | val_acc 0.8374 | mutation=on
+Epoch 048 | train_loss 0.3883 | train_acc 0.8639 | val_loss 0.4998 | val_acc 0.8324 | mutation=on
+Epoch 049 | train_loss 0.3837 | train_acc 0.8667 | val_loss 0.4732 | val_acc 0.8400 | mutation=on
+Saved checkpoint to checkpoints/cgse_phase2_cifar_full_mutate_seed41.pt

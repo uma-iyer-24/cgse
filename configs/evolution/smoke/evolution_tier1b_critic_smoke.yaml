@@ -1,0 +1,45 @@
+# Tier 1b critic: discrete policy over candidates after each stage (subset + CPU).
+experiment:
+  name: cgse_evolution_tier1b_critic_smoke
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 2
+  subset_train: 1024
+  subset_test: 256
+
+training:
+  epochs: 1
+  batch_size: 64
+  lr: 0.001
+  weight_decay: 0.0005
+  seed: 1
+  log_csv: runs/tier1b/metrics/evolution_tier1b_critic_smoke_metrics.csv
+
+model:
+  name: cifar_cnn
+  num_classes: 10
+
+device: cpu
+
+mutation:
+  enabled: false
+  log_jsonl: runs/tier1b/mutations/evolution_tier1b_critic_smoke_mutations.jsonl
+
+evolution:
+  enabled: true
+  mode: critic
+  epochs_per_stage: 2
+  num_stages: 4
+  widen_fc_delta: 16
+  widen_conv_delta: 16
+  candidates:
+    - widen_fc1
+    - split_before_fc1
+    - widen_conv3
+  critic:
+    epsilon: 0.35
+    lr: 0.02
+    hidden_dim: 48
+  schedule: []

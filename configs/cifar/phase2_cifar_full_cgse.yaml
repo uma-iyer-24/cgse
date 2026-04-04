@@ -1,0 +1,46 @@
+# CGSE arm: no teacher, label CE only; structural widen gated by StructuralCritic + REINFORCE.
+# Compare to phase2_cifar_full_mutate.yaml (fixed epoch) and baseline_sear_ch_teacher_mutate.yaml (KD).
+experiment:
+  name: cgse_phase2_cifar_full_cgse
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  lr: 0.001
+  weight_decay: 0.0005
+  seed: 42
+  log_csv: runs/tier1/metrics/phase2_cifar_full_cgse_metrics.csv
+
+model:
+  name: cifar_cnn
+  num_classes: 10
+
+device: mps
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: true
+  # Ignored when critic.enabled (timing comes from critic window + policy).
+  once_after_epoch: 10
+  widen_delta: 32
+  log_jsonl: runs/tier1/mutations/phase2_cifar_full_cgse_mutations.jsonl
+
+critic:
+  enabled: true
+  hidden_dim: 32
+  lr: 0.01
+  weight_decay: 0.0
+  epsilon: 0.25
+  # Parity with phase2_cifar_full_mutate.yaml (once_after_epoch: 10): single decision epoch.
+  window_start_epoch: 10
+  window_end_epoch: 10
+  force_mutate_end_of_window: true

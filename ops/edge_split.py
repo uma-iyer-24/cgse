@@ -2,23 +2,6 @@ import torch.nn as nn
 import torch
 
 
-def _infer_input_dim(model, node_index, default=16):
-    """
-    Walk graph up to node_index to compute feature size.
-    Assumes sequential execution graph.
-    """
-
-    dim = default
-
-    for nid in model.execution_order[:node_index]:
-        layer = model.nodes[nid]
-
-        if isinstance(layer, nn.Linear):
-            dim = layer.out_features
-
-    return dim
-
-
 def edge_split(model, target_node_id=None):
 
     # auto-pick first Linear
@@ -34,11 +17,8 @@ def edge_split(model, target_node_id=None):
     if not isinstance(old_layer, nn.Linear):
         raise ValueError("Only Linear layers can be split")
 
-    if idx == len(model.execution_order) - 1:
-        raise ValueError("Cannot split output layer in Phase 1")
-
-    # ✅ infer TRUE incoming dimension
-    in_f = _infer_input_dim(model, idx)
+    # Fan-in to this linear (matches activations after Flatten / prior layers in a valid graph).
+    in_f = old_layer.in_features
 
     # identity layer with correct dimension (same device/dtype as target for MPS/CUDA)
     new_layer = nn.Linear(in_f, in_f).to(

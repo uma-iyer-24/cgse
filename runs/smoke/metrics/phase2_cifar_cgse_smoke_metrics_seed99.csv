@@ -1,0 +1,7 @@
+utc_ts,experiment,epoch,train_loss,train_acc,val_loss,val_acc,num_parameters,mutation_applied_yet,critic_score
+20260403T231228Z,cgse_phase2_cifar_cgse_smoke_seed99,0,2.141031,0.240234,2.124744,0.173828,620810,False,-0.085534
+20260403T231228Z,cgse_phase2_cifar_cgse_smoke_seed99,1,1.784387,0.332520,1.836505,0.279297,620810,False,0.014082
+20260403T231228Z,cgse_phase2_cifar_cgse_smoke_seed99,2,1.636515,0.399902,1.648597,0.367188,653754,True,0.008348
+20260403T231228Z,cgse_phase2_cifar_cgse_smoke_seed99,3,1.588060,0.417969,1.606604,0.398438,653754,True,0.000888
+20260403T231228Z,cgse_phase2_cifar_cgse_smoke_seed99,4,1.465103,0.460938,1.621542,0.417969,653754,True,0.027877
+20260403T231228Z,cgse_phase2_cifar_cgse_smoke_seed99,5,1.428238,0.475098,1.459584,0.451172,653754,True,0.057900

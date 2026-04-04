@@ -17,8 +17,8 @@ selection, staged teacher–critic hybrids, etc.) are **out of scope** for this 
 the only comparison axis we implement toward is **teacher vs critic** as the source of
 non-label guidance for structural change.
 
-This module is a **minimal nn.Module** placeholder. Wiring `StructuralCritic` into
-`train.py` for mutation gating and meta-loss training is the next implementation step.
+`train.py` wires this module for **mutation gating** (see **`critics/state_features.py`**
+and YAML **`critic:`** block).
 """
 
 from __future__ import annotations
