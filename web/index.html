@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CGSE — Results preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>CGSE — experimental results</h1>
+      <p class="tagline">
+        Critic-guided self-evolution on CIFAR-10 (<span class="mono">CifarGraphNet</span>).
+        Tier 1 comparison grid and Tier 1b multi-stage evolution — generated from repo metrics.
+      </p>
+    </header>
+
+    <main>
+      <section id="figures">
+        <h2>Concept figures</h2>
+        <div class="figure-grid">
+          <figure class="figure-card">
+            <img src="assets/figures/cgse_teacher_vs_critic.png" alt="Teacher KD vs CGSE critic" />
+            <figcaption>Teacher + KD vs CGSE (critic-guided structure).</figcaption>
+          </figure>
+          <figure class="figure-card">
+            <img src="assets/figures/cgse_evolution_stages.png" alt="Staged evolution pipeline" />
+            <figcaption>Multi-stage train → edit → continue (Tier 1b).</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="tier1-summary">
+        <h2>Tier 1 — five-arm grid (CIFAR-10)</h2>
+        <p class="note" id="tier1-meta"></p>
+        <div class="table-wrap">
+          <table id="tier1-table">
+            <thead>
+              <tr>
+                <th>Arm</th>
+                <th>Best val acc (mean ± std)</th>
+                <th>Final val acc (mean ± std)</th>
+                <th>Seeds</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="chart-box">
+          <canvas id="chart-tier1-bar" aria-label="Mean best validation accuracy by arm"></canvas>
+        </div>
+        <div class="controls">
+          <label for="arm-select">Learning curves — arm:</label>
+          <select id="arm-select"></select>
+        </div>
+        <div class="chart-box">
+          <canvas id="chart-tier1-lines" aria-label="Validation accuracy over epochs"></canvas>
+        </div>
+      </section>
+
+      <section id="tier1b">
+        <h2>Tier 1b — schedule vs critic</h2>
+        <p class="note" id="tier1b-meta"></p>
+        <div class="chart-box">
+          <canvas id="chart-tier1b" aria-label="Tier 1b validation accuracy"></canvas>
+        </div>
+      </section>
+
+      <section id="howto">
+        <h2>Regenerate</h2>
+        <p class="mono" style="color: var(--muted); font-size: 0.9rem">
+          python scripts/build_results_site.py<br />
+          cd web && python -m http.server 8765
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Open source — see <a href="https://github.com/uma-iyer-24/cgse">github.com/uma-iyer-24/cgse</a>
+      </p>
+      <p id="footer-generated"></p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="generated-config.js"></script>
+    <script>
+      (function () {
+        const data = window.CGSE_RESULTS;
+        if (!data || !data.tier1 || !data.tier1.arms) {
+          document.getElementById("tier1-meta").textContent =
+            "Missing generated-config.js — run: python scripts/build_results_site.py";
+          return;
+        }
+
+        document.getElementById("footer-generated").textContent =
+          "Data generated: " + (data.generated_utc || "?");
+
+        const arms = data.tier1.arms;
+        const pct = (x) => (100 * x).toFixed(2) + "%";
+        const pm = (m, s) => pct(m) + " ± " + (100 * s).toFixed(2) + "pp";
+
+        document.getElementById("tier1-meta").textContent =
+          "Full CIFAR-10, matched training hyperparameters across arms. " +
+          arms.length +
+          " arms × " +
+          (arms[0]?.seeds?.length || 0) +
+          " seeds (41–43). Val acc = test-set accuracy in our logs.";
+
+        const tbody = document.querySelector("#tier1-table tbody");
+        arms.forEach((a) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td>" +
+            a.label +
+            "</td><td>" +
+            pm(a.best_val_acc_mean, a.best_val_acc_std) +
+            "</td><td>" +
+            pm(a.final_val_acc_mean, a.final_val_acc_std) +
+            "</td><td>" +
+            a.seeds.join(", ") +
+            "</td>";
+          tbody.appendChild(tr);
+        });
+
+        const barCtx = document.getElementById("chart-tier1-bar");
+        new Chart(barCtx, {
+          type: "bar",
+          data: {
+            labels: arms.map((a) => a.label.replace(/ \(.+\)$/, "").trim()),
+            datasets: [
+              {
+                label: "Mean best val acc",
+                data: arms.map((a) => 100 * a.best_val_acc_mean),
+                backgroundColor: arms.map((_, i) =>
+                  ["#5b9fd4", "#7c6cf0", "#3ecf8e", "#e8a849", "#e86f9a"][i % 5]
+                ),
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: "Tier 1 — mean best validation accuracy (%)" },
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                min: Math.max(
+                  50,
+                  Math.min(...arms.map((a) => 100 * a.best_val_acc_mean)) - 2
+                ),
+                max: 100,
+                grid: { color: "rgba(255,255,255,0.06)" },
+                ticks: { color: "#8b9cb3" },
+              },
+              x: { ticks: { color: "#8b9cb3", maxRotation: 45, minRotation: 45 } },
+            },
+          },
+        });
+
+        const sel = document.getElementById("arm-select");
+        arms.forEach((a, i) => {
+          const o = document.createElement("option");
+          o.value = String(i);
+          o.textContent = a.label;
+          sel.appendChild(o);
+        });
+
+        const lineCtx = document.getElementById("chart-tier1-lines");
+        const colors = ["#5b9fd4", "#7c6cf0", "#3ecf8e"];
+        let lineChart = null;
+
+        function renderLines(idx) {
+          const arm = arms[Number(idx)];
+          const datasets = arm.seeds.map((s, j) => {
+            const c = arm.per_seed[String(s)].curve;
+            return {
+              label: "seed " + s,
+              data: c.map((p) => ({ x: p.epoch, y: 100 * p.val_acc })),
+              borderColor: colors[j % colors.length],
+              backgroundColor: "transparent",
+              tension: 0.15,
+              pointRadius: 0,
+              borderWidth: 2,
+            };
+          });
+          if (lineChart) lineChart.destroy();
+          lineChart = new Chart(lineCtx, {
+            type: "line",
+            data: { datasets },
+            options: {
+              responsive: true,
+              parsing: false,
+              plugins: {
+                title: { display: true, text: arm.label + " — val accuracy (%)" },
+                legend: { labels: { color: "#8b9cb3" } },
+              },
+              scales: {
+                x: {
+                  type: "linear",
+                  title: { display: true, text: "Epoch", color: "#8b9cb3" },
+                  grid: { color: "rgba(255,255,255,0.06)" },
+                  ticks: { color: "#8b9cb3" },
+                },
+                y: {
+                  title: { display: true, text: "Val acc %", color: "#8b9cb3" },
+                  min: 50,
+                  max: 100,
+                  grid: { color: "rgba(255,255,255,0.06)" },
+                  ticks: { color: "#8b9cb3" },
+                },
+              },
+            },
+          });
+        }
+
+        sel.addEventListener("change", () => renderLines(sel.value));
+        renderLines("0");
+
+        const t1b = data.tier1b || {};
+        const t1bNote = document.getElementById("tier1b-meta");
+        const t1bCanvas = document.getElementById("chart-tier1b");
+
+        if (t1b.schedule && t1b.critic) {
+          const seedsS = t1b.schedule.seeds;
+          const seedsC = t1b.critic.seeds;
+          const common = seedsS.filter((s) => seedsC.includes(s));
+          const pick = common.length ? String(common[0]) : String(seedsS[0] || seedsC[0]);
+          t1bNote.textContent =
+            "Multi-stage evolution (50 epochs, 5×10). Schedule vs discrete critic. " +
+            "Seeds with data — schedule: " +
+            seedsS.join(", ") +
+            "; critic: " +
+            seedsC.join(", ") +
+            ". Chart uses seed " +
+            pick +
+            " when available in both. Run scripts/run_tier1b.sh for more seeds.";
+
+          const ds = [];
+          const firstSeed = pick;
+          if (t1b.schedule.per_seed[firstSeed]) {
+            const c = t1b.schedule.per_seed[firstSeed].curve;
+            ds.push({
+              label: "Schedule (seed " + firstSeed + ")",
+              data: c.map((p) => ({ x: p.epoch, y: 100 * p.val_acc })),
+              borderColor: "#5b9fd4",
+              tension: 0.15,
+              pointRadius: 0,
+              borderWidth: 2,
+            });
+          }
+          if (t1b.critic.per_seed[firstSeed]) {
+            const c = t1b.critic.per_seed[firstSeed].curve;
+            ds.push({
+              label: "Critic (seed " + firstSeed + ")",
+              data: c.map((p) => ({ x: p.epoch, y: 100 * p.val_acc })),
+              borderColor: "#e86f9a",
+              tension: 0.15,
+              pointRadius: 0,
+              borderWidth: 2,
+            });
+          }
+
+          new Chart(t1bCanvas, {
+            type: "line",
+            data: { datasets: ds },
+            options: {
+              responsive: true,
+              parsing: false,
+              plugins: {
+                title: { display: true, text: "Tier 1b — validation accuracy (%)" },
+                legend: { labels: { color: "#8b9cb3" } },
+              },
+              scales: {
+                x: {
+                  type: "linear",
+                  title: { display: true, text: "Epoch", color: "#8b9cb3" },
+                  grid: { color: "rgba(255,255,255,0.06)" },
+                  ticks: { color: "#8b9cb3" },
+                },
+                y: {
+                  min: 50,
+                  max: 100,
+                  grid: { color: "rgba(255,255,255,0.06)" },
+                  ticks: { color: "#8b9cb3" },
+                },
+              },
+            },
+          });
+        } else {
+          t1bNote.textContent =
+            "No Tier 1b CSVs found under runs/tier1b/metrics/. Run: bash scripts/run_tier1b.sh";
+          t1bCanvas.parentElement.style.display = "none";
+        }
+      })();
+    </script>
+  </body>
+</html>

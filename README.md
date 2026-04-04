@@ -61,7 +61,7 @@ flowchart LR
 
 ![Staged training and evolution pipeline](paper_documentation/figures/cgse_evolution_stages.png)
 
-**Dig deeper:** configs in `configs/`, run artifacts in [`runs/README.md`](runs/README.md), figures in [`paper_documentation/figures/`](paper_documentation/figures/), narrative PDFs and logs in [`paper_documentation/README.md`](paper_documentation/README.md).
+**Dig deeper:** configs in `configs/`, run artifacts in [`runs/README.md`](runs/README.md), figures in [`paper_documentation/figures/`](paper_documentation/figures/), narrative PDFs and logs in [`paper_documentation/README.md`](paper_documentation/README.md). **Interactive results preview** (charts + figures): run `python scripts/build_results_site.py`, then open [`web/index.html`](web/index.html) or `cd web && python -m http.server 8765` — see [`web/README.md`](web/README.md).
 
 ---
 

@@ -274,6 +274,38 @@ For **each** run that might appear in the paper:
 
 ---
 
+## 13. Ready-to-paste: honest gap vs SEArch (Related Work / Methods)
+
+*Use verbatim or shorten; cite Liang, Xiang & Li (2025), DOI 10.1016/j.neucom.2025.130980.*
+
+> **Comparison to SEArch.** SEArch (Liang et al., 2025) performs teacher-guided self-evolution on a DAG student with attention-weighted knowledge transfer and iterative edge splitting toward a parameter budget, often followed by a long SGD retrain. Our work targets the same *class* of problem—iterative structural improvement under a budget—but implements a **sequential** `CifarGraphNet` with **Net2Net-style widening**, **depth insertion**, and **conv widening** under graph validation, uses **logit-level** distillation (no intermediate attention module), and defaults to **Adam** with a fixed epoch budget unless we report an explicit Tier-2 parity protocol. We therefore do **not** claim operator-for-operator reproduction of SEArch; we position SEArch as the closest **teacher-guided self-evolving** baseline and isolate a single empirical contrast—**teacher-driven vs critic-driven structural decisions**—on our shared student family and operator set.
+
+---
+
+## 14. Draft results snapshot (Tier 1, seeds 41–43)
+
+*Replace with the table in your manuscript; numbers from `runs/tier1/metrics/` aggregated 2026-04-04. **Val acc** = accuracy on the CIFAR-10 test split as logged.*
+
+| Arm | Mean best val acc | Std (across seeds) |
+|-----|-------------------|---------------------|
+| Fixed (no mutation) | 84.48% | 0.14 pp |
+| Scheduled widen | 84.38% | 0.16 pp |
+| Teacher + KD | 84.87% | 0.21 pp |
+| Teacher + KD + widen | 84.95% | 0.34 pp |
+| CGSE (critic) | 84.68% | 0.41 pp |
+
+**Takeaway for slides:** teacher rows are slightly ahead on **best** val accuracy in this grid; CGSE remains competitive without teacher logits for **structural** choices. Tier 1b (multi-stage) adds a separate schedule-vs-critic comparison; see implementation log and `web/` preview.
+
+---
+
+## 15. Deferred (not required for Tier 1 demo)
+
+- **Tier 2:** ResNet-56 / ~0.27M student / long SGD — see §3.3.
+- **Tier 1b teacher arm:** same candidate set as critic under `evolution:` (evaluation plan §7).
+- **Further ablations:** ε, critic hidden size, stage count, operator subsets.
+
+---
+
 *This guide is meant to evolve: when Tier 2 configs land or the teacher Tier 1b arm is added, update §3 and §8 and bump the date below.*
 
 *Last updated: 2026-04-04.*
