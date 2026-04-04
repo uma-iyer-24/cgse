@@ -161,6 +161,13 @@
 - **`critics/critic.py`**, **`critics/__init__.py`** — **`StructuralCritic`** stub for CGSE (**next:** train + gate mutations in **`train.py`**).
 - **README** — experimental design table (teacher arm vs CGSE arm).
 
+### 2026-04-04 — Tier 1b full CIFAR (schedule vs critic, seed 41)
+
+- **Command.** `SEEDS=41 bash scripts/run_tier1b.sh` (see **`runs/README.md`**). Default script also runs seeds **42–43**; re-run with `SEEDS="41 42 43"` for the full sweep.
+- **Schedule arm** (`configs/evolution/evolution_tier1b_schedule.yaml`): fixed **widen_conv3 → widen_fc1 → split_before_fc2**; metrics `runs/tier1b/metrics/evolution_tier1b_schedule_metrics_seed41.csv`; log `runs/tier1b/logs/tier1b_schedule_seed41.log`.
+- **Critic arm** (`configs/evolution/evolution_tier1b_critic.yaml`): discrete critic, same stage budget; mutations `runs/tier1b/mutations/evolution_tier1b_critic_mutations_seed41.jsonl`; metrics `runs/tier1b/metrics/evolution_tier1b_critic_metrics_seed41.csv`; log `runs/tier1b/logs/tier1b_critic_seed41.log`.
+- **Checkpoints** under `checkpoints/tier1b/` match `.gitignore` (`checkpoints/*/cgse_*.pt`); not committed.
+
 ### 2026-04-04 — Tier 1b roadmap (docs only; parallel with Tier 1 training)
 
 - **Added** **[`SEArch-baseline-and-CGSE-evaluation-plan.md`](SEArch-baseline-and-CGSE-evaluation-plan.md) §7** — SEArch-like **multi-stage** protocol, **budget**, **2–3 operators** (widen / deepen / conv widen), **critic v2** over **(site × op)**, implementation checklist §7.4.
@@ -188,12 +195,20 @@
 
 Use one row per meaningful run (baseline, ablation, or production experiment). Paste a short excerpt in this doc; store full output in `runs/`.
 
+### Landing work / pull requests
+
+As of **2026-04-04**, GitHub **`origin`** exposes a single branch, **`phase1-graph`** (default). There is no separate **`main`** yet, so there is nothing to open a PR *into*. When you add **`main`** (or another release branch) and set it as the default, open **`phase1-graph` → `main`** and merge there.
+
+### Registry table
+
 | Run ID | Date | Config / command | Notes | Log file |
 |--------|------|-------------------|-------|----------|
-| phase2_cifar_full_baseline | 2026-04-02 | `python train.py --config configs/cifar/phase2_cifar_full.yaml` | Full CIFAR-10, 50 epochs, mutation off. Final `val_acc ≈ 0.8454`. | `runs/logs/train_phase2_cifar_full.log` |
-| phase2_cifar_full_mutate | 2026-04-03 | `python train.py --config configs/cifar/phase2_cifar_full_mutate.yaml` | Same as baseline + one widen after epoch 10 (device fix 2026-04-04). CSV records **epochs 0–44** (45 epochs); last row `val_acc ≈ 0.8379`, `num_parameters = 686698` after widen. Re-run for full 50 if needed. | `runs/metrics/phase2_cifar_full_mutate_metrics.csv`; `runs/logs/train_phase2_cifar_full_mutate.log` |
-| phase3_cifar_kd | — | `python train.py --config configs/cifar/phase3_cifar_kd.yaml` | Teacher + KD, fixed arch. Fill metrics after run. | `runs/metrics/phase3_cifar_kd_metrics.csv` |
-| baseline_sear_ch_teacher_mutate | — | `python train.py --config configs/cifar/baseline_sear_ch_teacher_mutate.yaml` | **SEArch control:** teacher + KD + widen after epoch 10. | `runs/metrics/baseline_sear_ch_teacher_mutate_metrics.csv` |
+| phase2_cifar_full_baseline | 2026-04-02 | `python train.py --config configs/cifar/phase2_cifar_full.yaml` | Full CIFAR-10, 50 epochs, mutation off. Final `val_acc ≈ 0.8454`. | `runs/tier1/logs/train_phase2_cifar_full.log` |
+| phase2_cifar_full_mutate | 2026-04-03 | `python train.py --config configs/cifar/phase2_cifar_full_mutate.yaml` | Same as baseline + one widen after epoch 10 (device fix 2026-04-04). CSV records **epochs 0–44** (45 epochs); last row `val_acc ≈ 0.8379`, `num_parameters = 686698` after widen. Re-run for full 50 if needed. | `runs/tier1/metrics/phase2_cifar_full_mutate_metrics.csv`; `runs/tier1/logs/train_phase2_cifar_full_mutate.log` |
+| phase3_cifar_kd | — | `python train.py --config configs/cifar/phase3_cifar_kd.yaml` | Teacher + KD, fixed arch. Fill metrics after run. | `runs/tier1/metrics/phase3_cifar_kd_metrics_seed41.csv` (multi-seed); see `runs/README.md` |
+| baseline_sear_ch_teacher_mutate | — | `python train.py --config configs/cifar/baseline_sear_ch_teacher_mutate.yaml` | **SEArch control:** teacher + KD + widen after epoch 10. | `runs/tier1/metrics/baseline_sear_ch_teacher_mutate_metrics_seed41.csv` (multi-seed) |
+| evolution_tier1b_schedule_seed41 | 2026-04-04 | `SEEDS=41 bash scripts/run_tier1b.sh` (schedule arm) | Full CIFAR-10, 5×10 epochs, fixed schedule: **widen_conv3** → **widen_fc1** → **split_before_fc2**. Final epoch `val_acc ≈ 0.8133`; best in CSV epoch 47 `val_acc ≈ 0.8417`; `num_parameters = 935914`. Checkpoints under `checkpoints/tier1b/` (gitignored). | `runs/tier1b/metrics/evolution_tier1b_schedule_metrics_seed41.csv`; `runs/tier1b/logs/tier1b_schedule_seed41.log` |
+| evolution_tier1b_critic_seed41 | 2026-04-04 | same script (critic arm) | Same budget as schedule; **discrete critic** picks ops (ε=0.25). Ops applied: **split_before_fc2** @ 9 → **widen_conv3** @ 19 → **widen_fc1** @ 29 (see JSONL). Final `val_acc ≈ 0.8399`; `num_parameters = 926346`. | `runs/tier1b/metrics/evolution_tier1b_critic_metrics_seed41.csv`; `runs/tier1b/logs/tier1b_critic_seed41.log` |
 
 ### Excerpt template (copy for each run)
 
@@ -234,7 +249,7 @@ Items to fill as experiments land:
 - [ ] **Prior art citation:** Liang et al. (2025) SEArch (Neurocomputing) + honest **operator/budget** gap vs our `CifarGraphNet` + widen/split (see **`SEArch-baseline-and-CGSE-evaluation-plan.md`**).
 - [ ] **Tier-1 experiment grid:** fixed / mutate-only / teacher+KD / teacher+KD+mutate / **CGSE** (critic); multi-seed for key rows.
 - [ ] **Tier-2 (optional parity):** ResNet-56 teacher, ~0.27M student, SGD long retrain — align with SEArch Table 5 setting where feasible.
-- [ ] **Tier 1b / §7 plan:** Multi-stage evolution under **param/FLOP budget** (SEArch-like); **2–3 operators** (widen fc, deepen fc, widen conv); **critic v2** = discrete **(site × op)** + stage-level reward; teacher arm uses same candidate set — see **`SEArch-baseline-and-CGSE-evaluation-plan.md` §7**.
+- [ ] **Tier 1b / §7 plan (partial):** Code + **full CIFAR** schedule vs critic for **seed 41** done (`scripts/run_tier1b.sh`). **Next:** default **seeds 42–43** in the same script; teacher arm with same candidate set when configured — see **`SEArch-baseline-and-CGSE-evaluation-plan.md` §7**.
 - [x] **Pytest:** `tests/test_graph_ops.py` — KD formula, checkpoint round-trip, `edge_widen` / `edge_split` on CPU (+ CUDA/MPS when available), one-batch teacher+KD smoke (plan §4.1).
 - [ ] Seeds, wall-clock, and hardware for each reported result.
 

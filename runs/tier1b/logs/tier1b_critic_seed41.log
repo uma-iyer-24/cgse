@@ -1,0 +1,57 @@
+[repro] Using --seed 41; experiment_name=cgse_evolution_tier1b_critic_seed41
+[evolution] critic mode: 3 candidate types, ε=0.25
+Epoch 000 (stage 0) | train_loss 1.4128 | train_acc 0.4836 | val_loss 1.0954 | val_acc 0.6034
+Epoch 001 (stage 0) | train_loss 1.0245 | train_acc 0.6375 | val_loss 0.8772 | val_acc 0.6899
+Epoch 002 (stage 0) | train_loss 0.8961 | train_acc 0.6839 | val_loss 0.9076 | val_acc 0.6796
+Epoch 003 (stage 0) | train_loss 0.8300 | train_acc 0.7072 | val_loss 0.7601 | val_acc 0.7338
+Epoch 004 (stage 0) | train_loss 0.7701 | train_acc 0.7318 | val_loss 0.8012 | val_acc 0.7276
+Epoch 005 (stage 0) | train_loss 0.7293 | train_acc 0.7448 | val_loss 0.7670 | val_acc 0.7334
+Epoch 006 (stage 0) | train_loss 0.6920 | train_acc 0.7567 | val_loss 0.6281 | val_acc 0.7773
+Epoch 007 (stage 0) | train_loss 0.6685 | train_acc 0.7647 | val_loss 0.6677 | val_acc 0.7693
+Epoch 008 (stage 0) | train_loss 0.6443 | train_acc 0.7742 | val_loss 0.6657 | val_acc 0.7674
+Epoch 009 (stage 0) | train_loss 0.6247 | train_acc 0.7817 | val_loss 0.7132 | val_acc 0.7588
+[evolution] (evolution_critic) split_before_fc2 @ global_epoch 9; params 620810 -> 686602
+Epoch 010 (stage 1) | train_loss 0.6177 | train_acc 0.7832 | val_loss 0.6558 | val_acc 0.7690
+Epoch 011 (stage 1) | train_loss 0.6011 | train_acc 0.7907 | val_loss 0.5784 | val_acc 0.7961
+Epoch 012 (stage 1) | train_loss 0.5798 | train_acc 0.7970 | val_loss 0.6421 | val_acc 0.7838
+Epoch 013 (stage 1) | train_loss 0.5683 | train_acc 0.8026 | val_loss 0.6075 | val_acc 0.7876
+Epoch 014 (stage 1) | train_loss 0.5603 | train_acc 0.8044 | val_loss 0.5948 | val_acc 0.7930
+Epoch 015 (stage 1) | train_loss 0.5391 | train_acc 0.8131 | val_loss 0.6197 | val_acc 0.7869
+Epoch 016 (stage 1) | train_loss 0.5294 | train_acc 0.8148 | val_loss 0.5797 | val_acc 0.8031
+Epoch 017 (stage 1) | train_loss 0.5283 | train_acc 0.8166 | val_loss 0.6302 | val_acc 0.7840
+Epoch 018 (stage 1) | train_loss 0.5166 | train_acc 0.8215 | val_loss 0.5307 | val_acc 0.8153
+Epoch 019 (stage 1) | train_loss 0.5057 | train_acc 0.8239 | val_loss 0.5624 | val_acc 0.8117
+[evolution] (evolution_critic) widen_conv3 @ global_epoch 19; params 686602 -> 836202
+Epoch 020 (stage 2) | train_loss 0.5209 | train_acc 0.8190 | val_loss 0.5737 | val_acc 0.8075
+Epoch 021 (stage 2) | train_loss 0.4898 | train_acc 0.8305 | val_loss 0.5870 | val_acc 0.8003
+Epoch 022 (stage 2) | train_loss 0.4843 | train_acc 0.8304 | val_loss 0.5284 | val_acc 0.8216
+Epoch 023 (stage 2) | train_loss 0.4761 | train_acc 0.8342 | val_loss 0.5337 | val_acc 0.8172
+Epoch 024 (stage 2) | train_loss 0.4711 | train_acc 0.8361 | val_loss 0.5061 | val_acc 0.8288
+Epoch 025 (stage 2) | train_loss 0.4699 | train_acc 0.8347 | val_loss 0.5574 | val_acc 0.8096
+Epoch 026 (stage 2) | train_loss 0.4604 | train_acc 0.8383 | val_loss 0.6003 | val_acc 0.7941
+Epoch 027 (stage 2) | train_loss 0.4547 | train_acc 0.8411 | val_loss 0.4862 | val_acc 0.8318
+Epoch 028 (stage 2) | train_loss 0.4510 | train_acc 0.8430 | val_loss 0.5306 | val_acc 0.8181
+Epoch 029 (stage 2) | train_loss 0.4368 | train_acc 0.8461 | val_loss 0.5321 | val_acc 0.8187
+[evolution] (evolution_critic) widen_fc1 @ global_epoch 29; params 836202 -> 926346
+Epoch 030 (stage 3) | train_loss 0.4407 | train_acc 0.8482 | val_loss 0.5240 | val_acc 0.8234
+Epoch 031 (stage 3) | train_loss 0.4390 | train_acc 0.8464 | val_loss 0.5318 | val_acc 0.8157
+Epoch 032 (stage 3) | train_loss 0.4274 | train_acc 0.8519 | val_loss 0.5140 | val_acc 0.8299
+Epoch 033 (stage 3) | train_loss 0.4266 | train_acc 0.8511 | val_loss 0.4973 | val_acc 0.8301
+Epoch 034 (stage 3) | train_loss 0.4212 | train_acc 0.8512 | val_loss 0.5694 | val_acc 0.8083
+Epoch 035 (stage 3) | train_loss 0.4134 | train_acc 0.8564 | val_loss 0.4993 | val_acc 0.8317
+Epoch 036 (stage 3) | train_loss 0.4163 | train_acc 0.8551 | val_loss 0.5115 | val_acc 0.8297
+Epoch 037 (stage 3) | train_loss 0.4137 | train_acc 0.8562 | val_loss 0.5334 | val_acc 0.8237
+Epoch 038 (stage 3) | train_loss 0.4062 | train_acc 0.8594 | val_loss 0.5205 | val_acc 0.8265
+Epoch 039 (stage 3) | train_loss 0.4038 | train_acc 0.8581 | val_loss 0.5306 | val_acc 0.8209
+Epoch 040 (stage 4) | train_loss 0.4071 | train_acc 0.8581 | val_loss 0.5585 | val_acc 0.8154
+Epoch 041 (stage 4) | train_loss 0.4032 | train_acc 0.8603 | val_loss 0.4688 | val_acc 0.8414
+Epoch 042 (stage 4) | train_loss 0.3927 | train_acc 0.8629 | val_loss 0.5242 | val_acc 0.8278
+Epoch 043 (stage 4) | train_loss 0.3986 | train_acc 0.8597 | val_loss 0.5459 | val_acc 0.8230
+Epoch 044 (stage 4) | train_loss 0.3946 | train_acc 0.8608 | val_loss 0.5253 | val_acc 0.8277
+Epoch 045 (stage 4) | train_loss 0.3881 | train_acc 0.8648 | val_loss 0.4726 | val_acc 0.8359
+Epoch 046 (stage 4) | train_loss 0.3891 | train_acc 0.8640 | val_loss 0.5077 | val_acc 0.8303
+Epoch 047 (stage 4) | train_loss 0.3891 | train_acc 0.8666 | val_loss 0.5241 | val_acc 0.8198
+Epoch 048 (stage 4) | train_loss 0.3834 | train_acc 0.8657 | val_loss 0.4991 | val_acc 0.8357
+Epoch 049 (stage 4) | train_loss 0.3816 | train_acc 0.8674 | val_loss 0.4919 | val_acc 0.8399
+Saved discrete critic to checkpoints/tier1b/cgse_evolution_tier1b_critic_seed41_discrete_critic.pt
+Saved checkpoint to checkpoints/tier1b/cgse_evolution_tier1b_critic_seed41.pt
