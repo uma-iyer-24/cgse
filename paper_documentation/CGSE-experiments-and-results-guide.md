@@ -284,7 +284,7 @@ For **each** run that might appear in the paper:
 
 ## 14. Draft results snapshot (Tier 1, seeds 41–43)
 
-*Replace with the table in your manuscript; numbers from `runs/tier1/metrics/` aggregated 2026-04-04. **Val acc** = accuracy on the CIFAR-10 test split as logged.*
+*Numbers from `runs/tier1/metrics/` (aggregated 2026-04-04). **Val acc** = accuracy on the CIFAR-10 test split as logged.*
 
 | Arm | Mean best val acc | Std (across seeds) |
 |-----|-------------------|---------------------|
@@ -294,7 +294,17 @@ For **each** run that might appear in the paper:
 | Teacher + KD + widen | 84.95% | 0.34 pp |
 | CGSE (critic) | 84.68% | 0.41 pp |
 
-**Takeaway for slides:** teacher rows are slightly ahead on **best** val accuracy in this grid; CGSE remains competitive without teacher logits for **structural** choices. Tier 1b (multi-stage) adds a separate schedule-vs-critic comparison; see implementation log and `web/` preview.
+### 14.1 Results prose (Tier 1 + Tier 1b)
+
+**Full paragraphs** suitable for a Results section (including Tier 1b seed-41 narrative and reproducibility stubs) live in **[`draft-results-for-paper.md`](draft-results-for-paper.md)**. Refresh that file when new seeds land; keep this guide as the **methods** checklist.
+
+**One-line takeaway (Tier 1):** Teacher-inclusive arms edge **mean best** val accuracy slightly; **CGSE** stays within ~0.3–0.7 pp on that metric without teacher guidance for **when** to widen.
+
+**Tier 1b (incomplete multi-seed as of 2026-04-05):** **Seed 41** complete for **both** schedule and critic; **schedule seed 42** was still training; critic seeds **42–43** not yet finished — see **`CGSE-implementation-log.md`** and the **status line** on the [`web/`](../web/) preview after `python scripts/build_results_site.py`.
+
+### 14.2 Hardware / wall-clock
+
+Fill the table in **`draft-results-for-paper.md`** with your machine. Sweeps used **`device: auto`** in YAML (CUDA → MPS → CPU). Per-job wall-clock varies; Tier 1b full CIFAR (~50 epochs) was on the order of **~1 hour per arm per seed** on a typical laptop GPU (indicative only — **measure** on your hardware).
 
 ---
 
@@ -308,4 +318,4 @@ For **each** run that might appear in the paper:
 
 *This guide is meant to evolve: when Tier 2 configs land or the teacher Tier 1b arm is added, update §3 and §8 and bump the date below.*
 
-*Last updated: 2026-04-04.*
+*Last updated: 2026-04-05.*

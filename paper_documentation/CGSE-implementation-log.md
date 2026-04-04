@@ -161,6 +161,21 @@
 - **`critics/critic.py`**, **`critics/__init__.py`** — **`StructuralCritic`** stub for CGSE (**next:** train + gate mutations in **`train.py`**).
 - **README** — experimental design table (teacher arm vs CGSE arm).
 
+### 2026-04-05 — Tier 1b sweep status + Results prose + Pages workflow
+
+- **Tier 1b:** **Schedule seed 42** was **still training** (partial CSV, fewer than 50 epochs); **critic seeds 42–43** had **not** started yet (script order: schedule then critic per seed). **Seed 41** complete for **both** arms — see registry rows and **`draft-results-for-paper.md`**. When the background sweep finishes, run **`python scripts/build_results_site.py`** and commit new `runs/tier1b/**` artifacts.
+- **`draft-results-for-paper.md`** — copy-paste **Results** paragraphs (Tier 1 summary stats, Tier 1b seed-41 detail, reproducibility table stub).
+- **`web/`** — Tier 1b **status banner** + **table** (complete vs incomplete seeds); chart uses **first seed complete for both arms**.
+- **GitHub Pages:** workflow **`.github/workflows/deploy-results-site.yml`** (enable Pages → GitHub Actions in repo settings).
+
+### Run environment (fill for paper)
+
+| Field | Notes |
+|-------|--------|
+| Device | Config **`device: auto`** → CUDA if available, else MPS, else CPU. **Record actual device** from your training console when publishing. |
+| Tier 1 sweep | `scripts/run_tier1.sh` with `DEVICE=auto` (see `runs/tier1/logs/tier1_master.log`). |
+| Tier 1b | `scripts/run_tier1b.sh`; ~**1 h per 50-epoch job** per arm on a typical **MPS/CUDA** laptop (measure locally). |
+
 ### 2026-04-04 — Results preview site + Tier 1 aggregate
 
 - **`web/`** — static **results preview**: Tier 1 table + bar chart + per-arm learning curves (Chart.js), Tier 1b overlay when CSVs exist, embedded concept PNGs. Build: `python scripts/build_results_site.py`. Documented in **`web/README.md`** and linked from root **`README.md`**.
@@ -260,7 +275,7 @@ Items to fill as experiments land:
 - [ ] **Prior art citation:** Liang et al. (2025) SEArch (Neurocomputing) + honest **operator/budget** gap vs our `CifarGraphNet` + widen/split (see **`SEArch-baseline-and-CGSE-evaluation-plan.md`**).
 - [x] **Tier-1 experiment grid:** fixed / mutate-only / teacher+KD / teacher+KD+mutate / **CGSE** (critic); **seeds 41–43** complete; see registry row **tier1_five_arm_grid** and `web/` preview.
 - [ ] **Tier-2 (optional parity):** ResNet-56 teacher, ~0.27M student, SGD long retrain — align with SEArch Table 5 setting where feasible.
-- [ ] **Tier 1b / §7 plan (partial):** Code + **full CIFAR** schedule vs critic for **seed 41** done (`scripts/run_tier1b.sh`). **Next:** default **seeds 42–43** in the same script; teacher arm with same candidate set when configured — see **`SEArch-baseline-and-CGSE-evaluation-plan.md` §7**.
+- [ ] **Tier 1b / §7 plan (partial):** **Seed 41** schedule + critic **complete**; **seeds 42–43** in progress or pending (`scripts/run_tier1b.sh`). **Next:** finish multi-seed, then optional **teacher** arm with same candidate set — see **`SEArch-baseline-and-CGSE-evaluation-plan.md` §7**.
 - [x] **Pytest:** `tests/test_graph_ops.py` — KD formula, checkpoint round-trip, `edge_widen` / `edge_split` on CPU (+ CUDA/MPS when available), one-batch teacher+KD smoke (plan §4.1).
 - [ ] Seeds, wall-clock, and hardware for each reported result.
 

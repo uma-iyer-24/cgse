@@ -66,7 +66,22 @@
 
       <section id="tier1b">
         <h2>Tier 1b — schedule vs critic</h2>
-        <p class="note" id="tier1b-meta"></p>
+        <p class="note" id="tier1b-status"></p>
+        <p class="note" id="tier1b-meta" style="border-left-color: var(--accent2)"></p>
+        <div class="table-wrap" id="tier1b-table-wrap" style="margin-top: 1rem">
+          <table id="tier1b-table">
+            <thead>
+              <tr>
+                <th>Arm</th>
+                <th>Complete seeds</th>
+                <th>Mean best val acc</th>
+                <th>Mean final val acc</th>
+                <th>Incomplete seeds</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
         <div class="chart-box">
           <canvas id="chart-tier1b" aria-label="Tier 1b validation accuracy"></canvas>
         </div>
@@ -227,42 +242,91 @@
         renderLines("0");
 
         const t1b = data.tier1b || {};
+        const t1bStatusEl = document.getElementById("tier1b-status");
         const t1bNote = document.getElementById("tier1b-meta");
         const t1bCanvas = document.getElementById("chart-tier1b");
+        const t1bTbody = document.querySelector("#tier1b-table tbody");
 
-        if (t1b.schedule && t1b.critic) {
-          const seedsS = t1b.schedule.seeds;
-          const seedsC = t1b.critic.seeds;
-          const common = seedsS.filter((s) => seedsC.includes(s));
-          const pick = common.length ? String(common[0]) : String(seedsS[0] || seedsC[0]);
+        t1bStatusEl.textContent = data.tier1b_status || "";
+
+        const sched = t1b.schedule;
+        const crit = t1b.critic;
+        if (!sched && !crit) {
           t1bNote.textContent =
-            "Multi-stage evolution (50 epochs, 5×10). Schedule vs discrete critic. " +
-            "Seeds with data — schedule: " +
-            seedsS.join(", ") +
-            "; critic: " +
-            seedsC.join(", ") +
-            ". Chart uses seed " +
-            pick +
-            " when available in both. Run scripts/run_tier1b.sh for more seeds.";
+            "No Tier 1b CSVs under runs/tier1b/metrics/. Run: bash scripts/run_tier1b.sh";
+          document.getElementById("tier1b-table-wrap").style.display = "none";
+          t1bCanvas.parentElement.style.display = "none";
+        } else {
+          t1bNote.textContent =
+            "Multi-stage evolution: 50 epochs (5×10), same candidate ops. Aggregates use only runs with 50 epoch rows; partial CSVs are listed as incomplete. Re-run build after sweeps finish.";
+
+          function rowArm(arm) {
+            const agg = arm.aggregate;
+            const inc = arm.seeds_incomplete.length ? arm.seeds_incomplete.join(", ") : "—";
+            const comp = arm.seeds_complete.length ? arm.seeds_complete.join(", ") : "—";
+            const tr = document.createElement("tr");
+            if (agg) {
+              tr.innerHTML =
+                "<td>" +
+                arm.label +
+                "</td><td>" +
+                comp +
+                "</td><td>" +
+                pm(agg.best_val_acc_mean, agg.best_val_acc_std) +
+                "</td><td>" +
+                pm(agg.final_val_acc_mean, agg.final_val_acc_std) +
+                "</td><td>" +
+                inc +
+                "</td>";
+            } else {
+              tr.innerHTML =
+                "<td>" +
+                arm.label +
+                "</td><td>—</td><td>—</td><td>—</td><td>" +
+                (arm.seeds_all.join(", ") || "—") +
+                " (all partial)</td>";
+            }
+            t1bTbody.appendChild(tr);
+          }
+          if (sched) rowArm(sched);
+          else {
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td>Fixed schedule</td><td colspan='4'>No CSVs in runs/tier1b/metrics/</td>";
+            t1bTbody.appendChild(tr);
+          }
+          if (crit) rowArm(crit);
+          else {
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td>Discrete critic</td><td colspan='4'>No CSVs in runs/tier1b/metrics/</td>";
+            t1bTbody.appendChild(tr);
+          }
+
+          const completeS = sched ? sched.seeds_complete : [];
+          const completeC = crit ? crit.seeds_complete : [];
+          const common = completeS.filter((s) => completeC.includes(s));
+          const pick = common.length ? String(common[0]) : null;
 
           const ds = [];
-          const firstSeed = pick;
-          if (t1b.schedule.per_seed[firstSeed]) {
-            const c = t1b.schedule.per_seed[firstSeed].curve;
+          if (pick && sched.complete[pick] && crit.complete[pick]) {
             ds.push({
-              label: "Schedule (seed " + firstSeed + ")",
-              data: c.map((p) => ({ x: p.epoch, y: 100 * p.val_acc })),
+              label: "Schedule (seed " + pick + ")",
+              data: sched.complete[pick].curve.map((p) => ({
+                x: p.epoch,
+                y: 100 * p.val_acc,
+              })),
               borderColor: "#5b9fd4",
               tension: 0.15,
               pointRadius: 0,
               borderWidth: 2,
             });
-          }
-          if (t1b.critic.per_seed[firstSeed]) {
-            const c = t1b.critic.per_seed[firstSeed].curve;
             ds.push({
-              label: "Critic (seed " + firstSeed + ")",
-              data: c.map((p) => ({ x: p.epoch, y: 100 * p.val_acc })),
+              label: "Critic (seed " + pick + ")",
+              data: crit.complete[pick].curve.map((p) => ({
+                x: p.epoch,
+                y: 100 * p.val_acc,
+              })),
               borderColor: "#e86f9a",
               tension: 0.15,
               pointRadius: 0,
@@ -270,36 +334,39 @@
             });
           }
 
-          new Chart(t1bCanvas, {
-            type: "line",
-            data: { datasets: ds },
-            options: {
-              responsive: true,
-              parsing: false,
-              plugins: {
-                title: { display: true, text: "Tier 1b — validation accuracy (%)" },
-                legend: { labels: { color: "#8b9cb3" } },
-              },
-              scales: {
-                x: {
-                  type: "linear",
-                  title: { display: true, text: "Epoch", color: "#8b9cb3" },
-                  grid: { color: "rgba(255,255,255,0.06)" },
-                  ticks: { color: "#8b9cb3" },
+          if (ds.length === 0) {
+            t1bCanvas.parentElement.style.display = "none";
+          } else {
+            new Chart(t1bCanvas, {
+              type: "line",
+              data: { datasets: ds },
+              options: {
+                responsive: true,
+                parsing: false,
+                plugins: {
+                  title: {
+                    display: true,
+                    text: "Tier 1b — val accuracy (%) — seed " + pick + " (both arms complete)",
+                  },
+                  legend: { labels: { color: "#8b9cb3" } },
                 },
-                y: {
-                  min: 50,
-                  max: 100,
-                  grid: { color: "rgba(255,255,255,0.06)" },
-                  ticks: { color: "#8b9cb3" },
+                scales: {
+                  x: {
+                    type: "linear",
+                    title: { display: true, text: "Epoch", color: "#8b9cb3" },
+                    grid: { color: "rgba(255,255,255,0.06)" },
+                    ticks: { color: "#8b9cb3" },
+                  },
+                  y: {
+                    min: 50,
+                    max: 100,
+                    grid: { color: "rgba(255,255,255,0.06)" },
+                    ticks: { color: "#8b9cb3" },
+                  },
                 },
               },
-            },
-          });
-        } else {
-          t1bNote.textContent =
-            "No Tier 1b CSVs found under runs/tier1b/metrics/. Run: bash scripts/run_tier1b.sh";
-          t1bCanvas.parentElement.style.display = "none";
+            });
+          }
         }
       })();
     </script>

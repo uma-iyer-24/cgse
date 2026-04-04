@@ -23,6 +23,9 @@ TIER1 = ROOT / "runs" / "tier1" / "metrics"
 TIER1B = ROOT / "runs" / "tier1b" / "metrics"
 FIG_SRC = ROOT / "paper_documentation" / "figures"
 
+# Tier 1b full runs: epochs 0..49 → 50 rows
+TIER1B_EXPECTED_EPOCHS = 50
+
 # filename stem (without _seedN) -> display label
 TIER1_ARMS = [
     ("phase2_cifar_full_metrics", "Fixed (no mutation)"),
@@ -85,16 +88,25 @@ def _collect_tier1_arm(stem: str, label: str) -> dict | None:
     return arm
 
 
+def _tier1b_csv_complete(rows: list[dict]) -> bool:
+    if len(rows) < TIER1B_EXPECTED_EPOCHS:
+        return False
+    epochs = [int(r["epoch"]) for r in rows]
+    return max(epochs) >= TIER1B_EXPECTED_EPOCHS - 1
+
+
 def _collect_tier1b() -> dict:
-    out = {"schedule": None, "critic": None}
-    for key, stem in [
-        ("schedule", "evolution_tier1b_schedule_metrics"),
-        ("critic", "evolution_tier1b_critic_metrics"),
+    arms_out: dict[str, dict] = {}
+    status_bits: list[str] = []
+
+    for key, stem, label in [
+        ("schedule", "evolution_tier1b_schedule_metrics", "Fixed schedule"),
+        ("critic", "evolution_tier1b_critic_metrics", "Discrete critic"),
     ]:
-        seeds_found = []
-        per_seed = {}
+        all_seeds: list[int] = []
+        complete: dict[str, dict] = {}
+        incomplete: dict[str, dict] = {}
         for p in sorted(TIER1B.glob(f"{stem}_seed*.csv")):
-            # stem_seed41.csv
             part = p.stem.replace(f"{stem}_", "")
             if not part.startswith("seed"):
                 continue
@@ -102,15 +114,70 @@ def _collect_tier1b() -> dict:
             rows = _read_csv(p)
             if not rows:
                 continue
-            per_seed[s] = _summarize_rows(rows)
-            seeds_found.append(int(s))
-        if per_seed:
-            out[key] = {
-                "stem": stem,
-                "seeds": sorted(seeds_found),
-                "per_seed": per_seed,
+            summ = _summarize_rows(rows)
+            summ["complete"] = _tier1b_csv_complete(rows)
+            all_seeds.append(int(s))
+            if summ["complete"]:
+                complete[s] = summ
+            else:
+                incomplete[s] = summ
+
+        if not all_seeds:
+            arms_out[key] = None
+            continue
+
+        bests = [v["best_val_acc"] for v in complete.values()]
+        finals = [v["final_val_acc"] for v in complete.values()]
+        agg = None
+        if bests:
+            agg = {
+                "n_complete": len(bests),
+                "best_val_acc_mean": statistics.mean(bests),
+                "best_val_acc_std": statistics.stdev(bests) if len(bests) > 1 else 0.0,
+                "final_val_acc_mean": statistics.mean(finals),
+                "final_val_acc_std": statistics.stdev(finals) if len(finals) > 1 else 0.0,
             }
-    return out
+
+        arms_out[key] = {
+            "label": label,
+            "stem": stem,
+            "seeds_all": sorted(all_seeds),
+            "seeds_complete": sorted(int(s) for s in complete),
+            "seeds_incomplete": sorted(int(s) for s in incomplete),
+            "complete": complete,
+            "incomplete": incomplete,
+            "aggregate": agg,
+        }
+
+        inc = arms_out[key]["seeds_incomplete"]
+        if inc:
+            status_bits.append(
+                f"{label}: incomplete seeds {inc} (CSV has fewer than {TIER1B_EXPECTED_EPOCHS} epochs)"
+            )
+
+    has_any = arms_out.get("schedule") is not None or arms_out.get("critic") is not None
+    if not has_any:
+        return {
+            "arms": arms_out,
+            "status_html": "Tier 1b: no seed CSVs found. Run scripts/run_tier1b.sh.",
+        }
+
+    if not status_bits:
+        sc = arms_out.get("schedule") or {}
+        cr = arms_out.get("critic") or {}
+        nc = len(sc.get("seeds_complete") or [])
+        n2 = len(cr.get("seeds_complete") or [])
+        if nc and n2:
+            status_bits.append(
+                f"Tier 1b: {nc} complete schedule run(s), {n2} complete critic run(s)."
+            )
+        elif nc or n2:
+            status_bits.append("Tier 1b: partial data — see table below.")
+
+    return {
+        "arms": arms_out,
+        "status_html": " ".join(status_bits) if status_bits else "Tier 1b: see table.",
+    }
 
 
 def main() -> None:
@@ -123,11 +190,13 @@ def main() -> None:
         if arm:
             tier1_arms.append(arm)
 
+    t1b = _collect_tier1b()
     payload = {
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "repo": "cgse",
         "tier1": {"arms": tier1_arms},
-        "tier1b": _collect_tier1b(),
+        "tier1b": t1b["arms"],
+        "tier1b_status": t1b["status_html"],
     }
 
     json_text = json.dumps(payload, indent=2)

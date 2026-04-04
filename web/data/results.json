@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-04-04T17:56:53Z",
+  "generated_utc": "2026-04-04T18:22:14Z",
   "repo": "cgse",
   "tier1": {
     "arms": [
@@ -3922,11 +3922,19 @@
   },
   "tier1b": {
     "schedule": {
+      "label": "Fixed schedule",
       "stem": "evolution_tier1b_schedule_metrics",
-      "seeds": [
+      "seeds_all": [
+        41,
+        42
+      ],
+      "seeds_complete": [
         41
       ],
-      "per_seed": {
+      "seeds_incomplete": [
+        42
+      ],
+      "complete": {
         "41": {
           "final_val_acc": 0.8133,
           "best_val_acc": 0.8417,
@@ -4184,16 +4192,166 @@
               "val_acc": 0.8133,
               "train_acc": 0.86452
             }
-          ]
+          ],
+          "complete": true
         }
+      },
+      "incomplete": {
+        "42": {
+          "final_val_acc": 0.8246,
+          "best_val_acc": 0.8267,
+          "final_train_acc": 0.83286,
+          "final_params": 852682,
+          "num_epochs": 25,
+          "curve": [
+            {
+              "epoch": 0,
+              "val_acc": 0.6177,
+              "train_acc": 0.49846
+            },
+            {
+              "epoch": 1,
+              "val_acc": 0.6691,
+              "train_acc": 0.63396
+            },
+            {
+              "epoch": 2,
+              "val_acc": 0.7127,
+              "train_acc": 0.68006
+            },
+            {
+              "epoch": 3,
+              "val_acc": 0.7414,
+              "train_acc": 0.70492
+            },
+            {
+              "epoch": 4,
+              "val_acc": 0.7345,
+              "train_acc": 0.72438
+            },
+            {
+              "epoch": 5,
+              "val_acc": 0.7473,
+              "train_acc": 0.74058
+            },
+            {
+              "epoch": 6,
+              "val_acc": 0.7694,
+              "train_acc": 0.7557
+            },
+            {
+              "epoch": 7,
+              "val_acc": 0.7706,
+              "train_acc": 0.76104
+            },
+            {
+              "epoch": 8,
+              "val_acc": 0.7853,
+              "train_acc": 0.7701
+            },
+            {
+              "epoch": 9,
+              "val_acc": 0.7968,
+              "train_acc": 0.782
+            },
+            {
+              "epoch": 10,
+              "val_acc": 0.7873,
+              "train_acc": 0.78154
+            },
+            {
+              "epoch": 11,
+              "val_acc": 0.7889,
+              "train_acc": 0.78802
+            },
+            {
+              "epoch": 12,
+              "val_acc": 0.7956,
+              "train_acc": 0.7952
+            },
+            {
+              "epoch": 13,
+              "val_acc": 0.7991,
+              "train_acc": 0.79976
+            },
+            {
+              "epoch": 14,
+              "val_acc": 0.7989,
+              "train_acc": 0.80412
+            },
+            {
+              "epoch": 15,
+              "val_acc": 0.8068,
+              "train_acc": 0.80658
+            },
+            {
+              "epoch": 16,
+              "val_acc": 0.8139,
+              "train_acc": 0.81192
+            },
+            {
+              "epoch": 17,
+              "val_acc": 0.8171,
+              "train_acc": 0.8162
+            },
+            {
+              "epoch": 18,
+              "val_acc": 0.8112,
+              "train_acc": 0.81746
+            },
+            {
+              "epoch": 19,
+              "val_acc": 0.8022,
+              "train_acc": 0.82112
+            },
+            {
+              "epoch": 20,
+              "val_acc": 0.8102,
+              "train_acc": 0.8219
+            },
+            {
+              "epoch": 21,
+              "val_acc": 0.7976,
+              "train_acc": 0.82642
+            },
+            {
+              "epoch": 22,
+              "val_acc": 0.8267,
+              "train_acc": 0.82676
+            },
+            {
+              "epoch": 23,
+              "val_acc": 0.8155,
+              "train_acc": 0.82918
+            },
+            {
+              "epoch": 24,
+              "val_acc": 0.8246,
+              "train_acc": 0.83286
+            }
+          ],
+          "complete": false
+        }
+      },
+      "aggregate": {
+        "n_complete": 1,
+        "best_val_acc_mean": 0.8417,
+        "best_val_acc_std": 0.0,
+        "final_val_acc_mean": 0.8133,
+        "final_val_acc_std": 0.0
       }
     },
     "critic": {
+      "label": "Discrete critic",
       "stem": "evolution_tier1b_critic_metrics",
-      "seeds": [
+      "seeds_all": [
         41
       ],
-      "per_seed": {
+      "seeds_complete": [
+        41
+      ],
+      "seeds_incomplete": [],
+      "complete": {
         "41": {
           "final_val_acc": 0.8399,
           "best_val_acc": 0.8414,
@@ -4451,9 +4609,19 @@
               "val_acc": 0.8399,
               "train_acc": 0.86742
             }
-          ]
+          ],
+          "complete": true
         }
+      },
+      "incomplete": {},
+      "aggregate": {
+        "n_complete": 1,
+        "best_val_acc_mean": 0.8414,
+        "best_val_acc_std": 0.0,
+        "final_val_acc_mean": 0.8399,
+        "final_val_acc_std": 0.0
       }
     }
-  }
+  },
+  "tier1b_status": "Fixed schedule: incomplete seeds [42] (CSV has fewer than 50 epochs)"
 }
