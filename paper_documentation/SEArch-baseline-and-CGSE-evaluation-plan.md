@@ -1,6 +1,6 @@
 # SEArch baseline paper, CGSE positioning, and evaluation parity
 
-This note ties the **reference SEArch system** (the paper you added as `SEArch (MP-1 Base Paper) (1).pdf`) to **this repository**, states how **CGSE** is meant to compete with it, and lists **tests and experiments** needed for a credible research paper.
+This note ties the **reference SEArch system** (the paper you added as `SEArch-MP1-base-paper.pdf`) to **this repository**, states how **CGSE** is meant to compete with it, and lists **tests and experiments** needed for a credible research paper.
 
 **Visual overview (for newcomers and slides):** see the [root `README.md`](../README.md) (primary goal, plain-language section, Mermaid diagrams) and PNG figures under [`paper_documentation/figures/`](figures/) (teacher vs critic; staged evolution pipeline).
 
@@ -114,7 +114,7 @@ Today most coverage is **scripts** under `scripts/`; **`tests/test_graph_ops.py`
 
 | Item | Location |
 |------|----------|
-| SEArch PDF (local copy) | `paper_documentation/SEArch (MP-1 Base Paper) (1).pdf` |
+| SEArch PDF (local copy) | `paper_documentation/SEArch-MP1-base-paper.pdf` |
 | CGSE narrative / positioning | `paper_documentation/project-doc.pdf` |
 | Teacher + KD configs | `configs/cifar/phase3_cifar_kd.yaml`, `configs/cifar/baseline_sear_ch_teacher_mutate.yaml` |
 | Critic (v1 + planned extensions) | `critics/critic.py`, `critics/state_features.py`, `train.py` |

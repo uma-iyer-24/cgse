@@ -13,7 +13,7 @@ The [repository `README.md`](../README.md) includes **Mermaid** diagrams (train/
 
 | Document | Role |
 |----------|------|
-| `SEArch (MP-1 Base Paper) (1).pdf` | **Liang et al. (2025)** — *SEArch* (Neurocomputing): teacher-guided self-evolving architecture; **primary baseline system** CGSE competes with. |
+| `SEArch-MP1-base-paper.pdf` | **Liang et al. (2025)** — *SEArch* (Neurocomputing): teacher-guided self-evolving architecture; **primary baseline system** CGSE competes with. |
 | [`SEArch-baseline-and-CGSE-evaluation-plan.md`](SEArch-baseline-and-CGSE-evaluation-plan.md) | Citation, SEArch↔codebase gap analysis, **Tier 1 / 2 / 3**, **§7** multi-stage + multi-op SEArch/CGSE roadmap, pytest/paper checklist. |
 | [`phase-plan-overview.pdf`](phase-plan-overview.pdf) | Phased roadmap (Phases 0–8). |
 | [`project-doc.pdf`](project-doc.pdf) | CGSE narrative, critic vs teacher, prior art (read alongside the SEArch paper). |
