@@ -1,0 +1,43 @@
+# Tier 2 DEV: student CE sanity check (small subset, few epochs).
+experiment:
+  name: tier2dev_student_resnet20_cifar10_ce
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 2
+  subset_train: 4000
+  subset_test: 1000
+
+training:
+  epochs: 5
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: multistep
+    milestones: [3, 4]
+    gamma: 0.1
+  log_csv: runs/tier2/metrics/tier2dev_student_resnet20_ce_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: false
+
+critic:
+  enabled: false
+

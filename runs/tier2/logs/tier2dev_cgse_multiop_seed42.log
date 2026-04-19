@@ -1,0 +1,10 @@
+[repro] Using --seed 42; experiment_name=tier2dev_student_resnet20_cifar10_cgse_multiop_seed42
+[critic] CGSE mutation gating: window [2, 2], ε=0.25, force_end=False
+Epoch 000 | train_loss 2.1399 | train_acc 0.1815 | val_loss 5.7364 | val_acc 0.1130 | critic -0.2845
+Epoch 001 | train_loss 1.8646 | train_acc 0.2665 | val_loss 2.1532 | val_acc 0.2080 | critic -0.3736
+Epoch 002 | train_loss 1.7365 | train_acc 0.3302 | val_loss 1.9484 | val_acc 0.3130 | critic -0.3866
+Epoch 003 | train_loss 1.6346 | train_acc 0.3822 | val_loss 1.7026 | val_acc 0.3490 | critic -0.3698
+Epoch 004 | train_loss 1.4651 | train_acc 0.4370 | val_loss 1.4532 | val_acc 0.4500 | critic -0.4277
+Epoch 005 | train_loss 1.3944 | train_acc 0.4848 | val_loss 1.4266 | val_acc 0.4570 | critic -0.4032
+Saved checkpoint to checkpoints/tier2/tier2dev_student_resnet20_cifar10_cgse_multiop_seed42.pt
+Saved critic weights to checkpoints/tier2/tier2dev_student_resnet20_cifar10_cgse_multiop_seed42_critic.pt

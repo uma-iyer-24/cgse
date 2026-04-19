@@ -1,0 +1,49 @@
+# Tier 2 DEV: student KD sanity check (small subset, few epochs).
+experiment:
+  name: tier2dev_student_resnet20_cifar10_kd
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 2
+  subset_train: 4000
+  subset_test: 1000
+
+training:
+  epochs: 5
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: multistep
+    milestones: [3, 4]
+    gamma: 0.1
+  log_csv: runs/tier2/metrics/tier2dev_student_resnet20_kd_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+  teacher_depth: 56
+
+device: auto
+
+teacher:
+  enabled: true
+  checkpoint: checkpoints/tier2/tier2dev_teacher_resnet56_cifar10_seed42.pt
+  depth: 56
+  base_width: 16
+  temperature: 4.0
+  alpha: 0.5
+
+mutation:
+  enabled: false
+
+critic:
+  enabled: false
+

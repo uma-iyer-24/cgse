@@ -248,6 +248,13 @@ PYTHONPATH=. pytest tests/test_graph_ops.py -q
 
 *Criterion:* run completes without exception; CSV and optional JSONL append.
 
+### 7.3.1 Tier 2 dev plan (fast parity sanity-check)
+
+Tier 2 (parity) runs are expensive. Recommended workflow:
+
+- **Dev (1 seed):** run `SEEDS="42" DEVICE=auto bash scripts/run_tier2_dev.sh` (subset CIFAR, ~5–6 epochs) to validate: SGD schedule, teacher checkpoint path, KD wiring, and CGSE multi-op mutation triggers.
+- **Paper (3 seeds):** run `SEEDS="41 42 43" DEVICE=auto bash scripts/run_tier2.sh` (full CIFAR, 200 epochs) for mean±std and SEArch-table comparisons.
+
 ### 7.4 Level 3 — Full Tier 1 grid (hours to days)
 
 - All five rows of §3.1 with **matched** hyperparameters.

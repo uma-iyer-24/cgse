@@ -87,6 +87,89 @@
         </div>
       </section>
 
+      <section id="tier2dev">
+        <h2>Tier 2 dev — parity sanity-check (small subset)</h2>
+        <p class="note" id="tier2dev-meta"></p>
+        <div class="table-wrap" id="tier2dev-table-wrap" style="margin-top: 1rem">
+          <table id="tier2dev-table">
+            <thead>
+              <tr>
+                <th>Row</th>
+                <th>Seed</th>
+                <th>Best val acc</th>
+                <th>Final val acc</th>
+                <th>Teacher forwards</th>
+                <th>Wall seconds</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="note">
+          <b>What this is:</b> a quick correctness check (subset CIFAR, few epochs). Use it to verify
+          KD wiring, mutation triggers, and the efficiency metrics logging — not for paper claims.
+        </div>
+      </section>
+
+      <section id="metrics">
+        <h2>Metric glossary (how to interpret the logs)</h2>
+        <div class="table-wrap" style="margin-top: 1rem">
+          <table>
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Meaning</th>
+                <th>Why it matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">val_acc</td>
+                <td>Accuracy on the CIFAR-10 test split (we call it “val”).</td>
+                <td>Primary performance metric; comparable across arms within a tier.</td>
+              </tr>
+              <tr>
+                <td class="mono">num_parameters</td>
+                <td>Trainable parameter count after any structural edits.</td>
+                <td>Budget / capacity; report alongside accuracy.</td>
+              </tr>
+              <tr>
+                <td class="mono">teacher_forwards</td>
+                <td>Cumulative teacher forward passes during training.</td>
+                <td>Proxy for extra compute cost of KD/teacher-guided methods. CGSE teacher-free rows have 0.</td>
+              </tr>
+              <tr>
+                <td class="mono">wall_seconds</td>
+                <td>Cumulative wall-clock seconds since run start.</td>
+                <td>Supports accuracy-per-time comparisons and practical efficiency claims.</td>
+              </tr>
+              <tr>
+                <td class="mono">train_steps</td>
+                <td>Cumulative number of training batches processed.</td>
+                <td>Normalizes compute across hardware and helps compare “work done”.</td>
+              </tr>
+              <tr>
+                <td class="mono">epoch_seconds</td>
+                <td>Wall time for an epoch (train + eval).</td>
+                <td>Helps identify overhead and compare per-epoch cost.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="cgse-vs-search">
+        <h2>How CGSE can be better than SEArch (legitimate claims)</h2>
+        <div class="note">
+          <ul style="margin: 0; padding-left: 1.25rem">
+            <li><b>Teacher-free evolution:</b> CGSE can run with <span class="mono">teacher_forwards = 0</span> while still evolving structure.</li>
+            <li><b>Lower auxiliary compute:</b> KD/teacher baselines pay teacher inference every training step; we measure it directly as <span class="mono">teacher_forwards</span> and as added <span class="mono">wall_seconds</span>.</li>
+            <li><b>Accuracy-per-time:</b> compare <span class="mono">val_acc</span> as a function of <span class="mono">wall_seconds</span> (or GPU-hours) rather than only final accuracy.</li>
+            <li><b>Evolution efficiency:</b> for multi-stage runs, report edits-to-threshold using mutation JSONL.</li>
+          </ul>
+        </div>
+      </section>
+
       <section id="howto">
         <h2>Regenerate</h2>
         <p class="mono" style="color: var(--muted); font-size: 0.9rem">
@@ -367,6 +450,39 @@
               },
             });
           }
+        }
+
+        // --- Tier 2 dev table ---
+        const t2 = data.tier2dev || {};
+        const t2Meta = document.getElementById("tier2dev-meta");
+        const t2Tbody = document.querySelector("#tier2dev-table tbody");
+        if (!t2.rows || t2.rows.length === 0) {
+          t2Meta.textContent =
+            "No Tier 2 dev metrics found under runs/tier2/metrics/. Run: bash scripts/run_tier2_dev.sh";
+          document.getElementById("tier2dev-table-wrap").style.display = "none";
+        } else {
+          t2Meta.textContent =
+            "DEV runs (subset CIFAR, few epochs). Shows efficiency fields like teacher_forwards and wall_seconds.";
+          t2.rows.forEach((r) => {
+            const s = String(r.default_seed);
+            const one = r.per_seed[s];
+            const tr = document.createElement("tr");
+            tr.innerHTML =
+              "<td>" +
+              r.label +
+              "</td><td>" +
+              s +
+              "</td><td>" +
+              pct(one.best_val_acc) +
+              "</td><td>" +
+              pct(one.final_val_acc) +
+              "</td><td>" +
+              (one.teacher_forwards ?? 0) +
+              "</td><td>" +
+              (one.wall_seconds ? one.wall_seconds.toFixed(1) : "—") +
+              "</td>";
+            t2Tbody.appendChild(tr);
+          });
         }
       })();
     </script>

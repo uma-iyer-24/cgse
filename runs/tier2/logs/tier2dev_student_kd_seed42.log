@@ -1,0 +1,8 @@
+[repro] Using --seed 42; experiment_name=tier2dev_student_resnet20_cifar10_kd_seed42
+[teacher] Loaded frozen teacher from checkpoints/tier2/tier2dev_teacher_resnet56_cifar10_seed42.pt (KD training).
+Epoch 000 | train_loss 1.2089 | train_acc 0.1960 | val_loss 2.5136 | val_acc 0.1770 | kd T=4.0 α=0.5
+Epoch 001 | train_loss 0.9979 | train_acc 0.2625 | val_loss 1.8698 | val_acc 0.2420 | kd T=4.0 α=0.5
+Epoch 002 | train_loss 0.9550 | train_acc 0.3185 | val_loss 1.7853 | val_acc 0.2980 | kd T=4.0 α=0.5
+Epoch 003 | train_loss 0.9209 | train_acc 0.3432 | val_loss 1.6931 | val_acc 0.3630 | kd T=4.0 α=0.5
+Epoch 004 | train_loss 0.9077 | train_acc 0.3698 | val_loss 1.6948 | val_acc 0.3620 | kd T=4.0 α=0.5
+Saved checkpoint to checkpoints/tier2/tier2dev_student_resnet20_cifar10_kd_seed42.pt

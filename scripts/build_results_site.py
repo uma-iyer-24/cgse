@@ -21,6 +21,7 @@ DATA = WEB / "data"
 ASSETS = WEB / "assets" / "figures"
 TIER1 = ROOT / "runs" / "tier1" / "metrics"
 TIER1B = ROOT / "runs" / "tier1b" / "metrics"
+TIER2 = ROOT / "runs" / "tier2" / "metrics"
 FIG_SRC = ROOT / "paper_documentation" / "figures"
 
 # Tier 1b full runs: epochs 0..49 → 50 rows
@@ -33,6 +34,13 @@ TIER1_ARMS = [
     ("phase3_cifar_kd_metrics", "Teacher + KD"),
     ("baseline_sear_ch_teacher_mutate_metrics", "Teacher + KD + widen"),
     ("phase2_cifar_full_cgse_metrics", "CGSE (critic)"),
+]
+
+TIER2DEV_ROWS = [
+    ("tier2dev_teacher_resnet56_metrics", "Teacher (ResNet-56)"),
+    ("tier2dev_student_resnet20_ce_metrics", "Student CE (ResNet-20)"),
+    ("tier2dev_student_resnet20_kd_metrics", "Student KD (ResNet-20)"),
+    ("tier2dev_student_resnet20_cgse_multiop_metrics", "CGSE multi-op (ResNet-20)"),
 ]
 
 
@@ -48,12 +56,31 @@ def _summarize_rows(rows: list[dict]) -> dict:
     train_accs = [float(r["train_acc"]) for r in rows]
     epochs = [int(r["epoch"]) for r in rows]
     params = int(float(rows[-1]["num_parameters"]))
+    last = rows[-1]
+    def _f(key: str, default: float = 0.0) -> float:
+        try:
+            v = last.get(key, "")
+            return float(v) if v not in ("", None) else default
+        except Exception:
+            return default
+
+    def _i(key: str) -> int:
+        try:
+            v = last.get(key, "")
+            return int(float(v)) if v not in ("", None) else 0
+        except Exception:
+            return 0
+
     return {
         "final_val_acc": val_accs[-1],
         "best_val_acc": max(val_accs),
         "final_train_acc": train_accs[-1],
         "final_params": params,
         "num_epochs": len(rows),
+        # Efficiency fields (if present)
+        "wall_seconds": _f("wall_seconds", 0.0),
+        "teacher_forwards": _i("teacher_forwards"),
+        "train_steps": _i("train_steps"),
         "curve": [
             {"epoch": int(r["epoch"]), "val_acc": float(r["val_acc"]), "train_acc": float(r["train_acc"])}
             for r in rows
@@ -180,6 +207,33 @@ def _collect_tier1b() -> dict:
     }
 
 
+def _collect_tier2dev() -> dict:
+    # Dev sweeps are usually 1 seed.
+    seeds = [41, 42, 43]
+    rows_out = []
+    for stem, label in TIER2DEV_ROWS:
+        per_seed = {}
+        for s in seeds:
+            p = TIER2 / f"{stem}_seed{s}.csv"
+            if not p.exists():
+                continue
+            per_seed[str(s)] = _summarize_rows(_read_csv(p))
+        if not per_seed:
+            continue
+        # choose the lowest seed for display by default
+        seed_pick = sorted(int(k) for k in per_seed.keys())[0]
+        rows_out.append(
+            {
+                "id": stem.replace("_metrics", ""),
+                "label": label,
+                "seeds": sorted(int(k) for k in per_seed.keys()),
+                "per_seed": per_seed,
+                "default_seed": seed_pick,
+            }
+        )
+    return {"rows": rows_out}
+
+
 def main() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     ASSETS.mkdir(parents=True, exist_ok=True)
@@ -197,6 +251,7 @@ def main() -> None:
         "tier1": {"arms": tier1_arms},
         "tier1b": t1b["arms"],
         "tier1b_status": t1b["status_html"],
+        "tier2dev": _collect_tier2dev(),
     }
 
     json_text = json.dumps(payload, indent=2)

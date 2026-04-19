@@ -1,0 +1,7 @@
+[repro] Using --seed 42; experiment_name=tier2dev_teacher_resnet56_cifar10_seed42
+Epoch 000 | train_loss 2.6441 | train_acc 0.1025 | val_loss 2.4667 | val_acc 0.1340
+Epoch 001 | train_loss 2.2670 | train_acc 0.1487 | val_loss 2.2502 | val_acc 0.1820
+Epoch 002 | train_loss 2.0966 | train_acc 0.1910 | val_loss 2.1645 | val_acc 0.1990
+Epoch 003 | train_loss 1.9725 | train_acc 0.2132 | val_loss 1.9075 | val_acc 0.2560
+Epoch 004 | train_loss 1.9247 | train_acc 0.2420 | val_loss 1.8991 | val_acc 0.2630
+Saved checkpoint to checkpoints/tier2/tier2dev_teacher_resnet56_cifar10_seed42.pt

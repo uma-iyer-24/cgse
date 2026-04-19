@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-04-19T16:52:47Z",
+  "generated_utc": "2026-04-19T18:06:51Z",
   "repo": "cgse",
   "tier1": {
     "arms": [
@@ -18,6 +18,9 @@
             "final_train_acc": 0.86658,
             "final_params": 620810,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -277,6 +280,9 @@
             "final_train_acc": 0.86626,
             "final_params": 620810,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -536,6 +542,9 @@
             "final_train_acc": 0.86554,
             "final_params": 620810,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -810,6 +819,9 @@
             "final_train_acc": 0.86674,
             "final_params": 686698,
             "num_epochs": 66,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -1149,6 +1161,9 @@
             "final_train_acc": 0.86424,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -1408,6 +1423,9 @@
             "final_train_acc": 0.86514,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -1682,6 +1700,9 @@
             "final_train_acc": 0.85902,
             "final_params": 620810,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -1941,6 +1962,9 @@
             "final_train_acc": 0.86076,
             "final_params": 620810,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -2200,6 +2224,9 @@
             "final_train_acc": 0.8552,
             "final_params": 620810,
             "num_epochs": 25,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 25,
@@ -2349,6 +2376,9 @@
             "final_train_acc": 0.85558,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -2608,6 +2638,9 @@
             "final_train_acc": 0.86132,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -2867,6 +2900,9 @@
             "final_train_acc": 0.8567,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -3141,6 +3177,9 @@
             "final_train_acc": 0.86618,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -3400,6 +3439,9 @@
             "final_train_acc": 0.8647,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -3659,6 +3701,9 @@
             "final_train_acc": 0.8646,
             "final_params": 686698,
             "num_epochs": 50,
+            "wall_seconds": 0.0,
+            "teacher_forwards": 0,
+            "train_steps": 0,
             "curve": [
               {
                 "epoch": 0,
@@ -3942,6 +3987,9 @@
           "final_train_acc": 0.86452,
           "final_params": 935914,
           "num_epochs": 50,
+          "wall_seconds": 0.0,
+          "teacher_forwards": 0,
+          "train_steps": 0,
           "curve": [
             {
               "epoch": 0,
@@ -4202,6 +4250,9 @@
           "final_train_acc": 0.86354,
           "final_params": 935914,
           "num_epochs": 50,
+          "wall_seconds": 0.0,
+          "teacher_forwards": 0,
+          "train_steps": 0,
           "curve": [
             {
               "epoch": 0,
@@ -4462,6 +4513,9 @@
           "final_train_acc": 0.86224,
           "final_params": 935914,
           "num_epochs": 50,
+          "wall_seconds": 0.0,
+          "teacher_forwards": 0,
+          "train_steps": 0,
           "curve": [
             {
               "epoch": 0,
@@ -4747,6 +4801,9 @@
           "final_train_acc": 0.86742,
           "final_params": 926346,
           "num_epochs": 50,
+          "wall_seconds": 0.0,
+          "teacher_forwards": 0,
+          "train_steps": 0,
           "curve": [
             {
               "epoch": 0,
@@ -5007,6 +5064,9 @@
           "final_train_acc": 0.87222,
           "final_params": 926346,
           "num_epochs": 50,
+          "wall_seconds": 0.0,
+          "teacher_forwards": 0,
+          "train_steps": 0,
           "curve": [
             {
               "epoch": 0,
@@ -5267,6 +5327,9 @@
           "final_train_acc": 0.86682,
           "final_params": 926346,
           "num_epochs": 50,
+          "wall_seconds": 0.0,
+          "teacher_forwards": 0,
+          "train_steps": 0,
           "curve": [
             {
               "epoch": 0,
@@ -5532,5 +5595,202 @@
       }
     }
   },
-  "tier1b_status": "Tier 1b: 3 complete schedule run(s), 3 complete critic run(s)."
+  "tier1b_status": "Tier 1b: 3 complete schedule run(s), 3 complete critic run(s).",
+  "tier2dev": {
+    "rows": [
+      {
+        "id": "tier2dev_teacher_resnet56",
+        "label": "Teacher (ResNet-56)",
+        "seeds": [
+          42
+        ],
+        "per_seed": {
+          "42": {
+            "final_val_acc": 0.263,
+            "best_val_acc": 0.263,
+            "final_train_acc": 0.242,
+            "final_params": 855770,
+            "num_epochs": 5,
+            "wall_seconds": 138.113387,
+            "teacher_forwards": 0,
+            "train_steps": 160,
+            "curve": [
+              {
+                "epoch": 0,
+                "val_acc": 0.134,
+                "train_acc": 0.1025
+              },
+              {
+                "epoch": 1,
+                "val_acc": 0.182,
+                "train_acc": 0.14875
+              },
+              {
+                "epoch": 2,
+                "val_acc": 0.199,
+                "train_acc": 0.191
+              },
+              {
+                "epoch": 3,
+                "val_acc": 0.256,
+                "train_acc": 0.21325
+              },
+              {
+                "epoch": 4,
+                "val_acc": 0.263,
+                "train_acc": 0.242
+              }
+            ]
+          }
+        },
+        "default_seed": 42
+      },
+      {
+        "id": "tier2dev_student_resnet20_ce",
+        "label": "Student CE (ResNet-20)",
+        "seeds": [
+          42
+        ],
+        "per_seed": {
+          "42": {
+            "final_val_acc": 0.452,
+            "best_val_acc": 0.452,
+            "final_train_acc": 0.44075,
+            "final_params": 272474,
+            "num_epochs": 5,
+            "wall_seconds": 132.326543,
+            "teacher_forwards": 0,
+            "train_steps": 160,
+            "curve": [
+              {
+                "epoch": 0,
+                "val_acc": 0.165,
+                "train_acc": 0.19175
+              },
+              {
+                "epoch": 1,
+                "val_acc": 0.198,
+                "train_acc": 0.28425
+              },
+              {
+                "epoch": 2,
+                "val_acc": 0.224,
+                "train_acc": 0.355
+              },
+              {
+                "epoch": 3,
+                "val_acc": 0.437,
+                "train_acc": 0.4045
+              },
+              {
+                "epoch": 4,
+                "val_acc": 0.452,
+                "train_acc": 0.44075
+              }
+            ]
+          }
+        },
+        "default_seed": 42
+      },
+      {
+        "id": "tier2dev_student_resnet20_kd",
+        "label": "Student KD (ResNet-20)",
+        "seeds": [
+          42
+        ],
+        "per_seed": {
+          "42": {
+            "final_val_acc": 0.362,
+            "best_val_acc": 0.363,
+            "final_train_acc": 0.36975,
+            "final_params": 272474,
+            "num_epochs": 5,
+            "wall_seconds": 133.035186,
+            "teacher_forwards": 160,
+            "train_steps": 160,
+            "curve": [
+              {
+                "epoch": 0,
+                "val_acc": 0.177,
+                "train_acc": 0.196
+              },
+              {
+                "epoch": 1,
+                "val_acc": 0.242,
+                "train_acc": 0.2625
+              },
+              {
+                "epoch": 2,
+                "val_acc": 0.298,
+                "train_acc": 0.3185
+              },
+              {
+                "epoch": 3,
+                "val_acc": 0.363,
+                "train_acc": 0.34325
+              },
+              {
+                "epoch": 4,
+                "val_acc": 0.362,
+                "train_acc": 0.36975
+              }
+            ]
+          }
+        },
+        "default_seed": 42
+      },
+      {
+        "id": "tier2dev_student_resnet20_cgse_multiop",
+        "label": "CGSE multi-op (ResNet-20)",
+        "seeds": [
+          42
+        ],
+        "per_seed": {
+          "42": {
+            "final_val_acc": 0.457,
+            "best_val_acc": 0.457,
+            "final_train_acc": 0.48475,
+            "final_params": 272474,
+            "num_epochs": 6,
+            "wall_seconds": 158.225242,
+            "teacher_forwards": 0,
+            "train_steps": 192,
+            "curve": [
+              {
+                "epoch": 0,
+                "val_acc": 0.113,
+                "train_acc": 0.1815
+              },
+              {
+                "epoch": 1,
+                "val_acc": 0.208,
+                "train_acc": 0.2665
+              },
+              {
+                "epoch": 2,
+                "val_acc": 0.313,
+                "train_acc": 0.33025
+              },
+              {
+                "epoch": 3,
+                "val_acc": 0.349,
+                "train_acc": 0.38225
+              },
+              {
+                "epoch": 4,
+                "val_acc": 0.45,
+                "train_acc": 0.437
+              },
+              {
+                "epoch": 5,
+                "val_acc": 0.457,
+                "train_acc": 0.48475
+              }
+            ]
+          }
+        },
+        "default_seed": 42
+      }
+    ]
+  }
 }

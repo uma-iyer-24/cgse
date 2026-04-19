@@ -62,3 +62,28 @@ python train.py --config configs/tier2/student_resnet20_cifar10_cgse_multiop.yam
 
 For paper claims, run seeds 41–43 and report mean ± std.
 
+## Dev vs paper run plan (recommended)
+
+To avoid paying the 3× cost during iteration, use two phases:
+
+### Dev runs (fast, 1 seed)
+
+- Purpose: sanity-check correctness (loss goes down, KD works, mutation triggers, metrics/JSONL produced).
+- Use **one** seed (e.g. 42) and a **smaller subset** + fewer epochs.
+- Example:
+
+```bash
+# Choose 1 seed for iteration
+SEEDS="42" DEVICE=auto bash scripts/run_tier2_dev.sh
+```
+
+### Paper runs (full, 3 seeds)
+
+- Purpose: statistically defensible comparisons: **mean ± std** and stable conclusions.
+- Use full CIFAR-10 and the full Tier 2 epoch budget.
+- Example:
+
+```bash
+SEEDS="41 42 43" DEVICE=auto bash scripts/run_tier2.sh
+```
+

@@ -1,0 +1,6 @@
+utc_ts,experiment,epoch,train_loss,train_acc,val_loss,val_acc,num_parameters,mutation_applied_yet,critic_score,optimizer,lr,epoch_seconds,wall_seconds,train_steps,teacher_forwards
+20260419T175039Z,tier2dev_teacher_resnet56_cifar10_seed42,0,2.644140,0.102500,2.466671,0.134000,855770,False,,sgd,0.10000000,28.621492,28.621496,32,0
+20260419T175039Z,tier2dev_teacher_resnet56_cifar10_seed42,1,2.266984,0.148750,2.250166,0.182000,855770,False,,sgd,0.10000000,27.580505,56.205437,64,0
+20260419T175039Z,tier2dev_teacher_resnet56_cifar10_seed42,2,2.096642,0.191000,2.164466,0.199000,855770,False,,sgd,0.01000000,27.380319,83.587916,96,0
+20260419T175039Z,tier2dev_teacher_resnet56_cifar10_seed42,3,1.972546,0.213250,1.907524,0.256000,855770,False,,sgd,0.00100000,26.874613,110.463212,128,0
+20260419T175039Z,tier2dev_teacher_resnet56_cifar10_seed42,4,1.924665,0.242000,1.899089,0.263000,855770,False,,sgd,0.00100000,27.646427,138.113387,160,0
