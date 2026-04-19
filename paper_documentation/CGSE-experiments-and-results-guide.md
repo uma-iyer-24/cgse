@@ -77,7 +77,16 @@ Tiers are **layers of evidence**, not mutually exclusive code paths. Later tiers
 
 ### 3.3 Tier 2 — Numeric / training parity with SEArch (CIFAR-10 KD table)
 
-**Goal.** Compare **numbers** to settings such as SEArch **Table 5**: e.g. **ResNet-56**-class teacher, **~0.27M** student, **SGD**, **long retrain**. This tier is **specified** in [`SEArch-baseline-and-CGSE-evaluation-plan.md`](SEArch-baseline-and-CGSE-evaluation-plan.md) §4.2 but **not** fully implemented as turnkey configs in the repo at the time of this guide.
+**Goal.** Compare **numbers** to settings such as SEArch **Table 5**: e.g. **ResNet-56**-class teacher, **~0.27M** student, **SGD**, **long retrain**.
+
+**Status (implemented, approximate).** This repo includes a CIFAR ResNet track:
+
+- Teacher: `configs/tier2/teacher_resnet56_cifar10.yaml`
+- Student (CE): `configs/tier2/student_resnet20_cifar10_ce.yaml`
+- Student (KD): `configs/tier2/student_resnet20_cifar10_kd.yaml` (requires teacher checkpoint)
+- Sweep: `scripts/run_tier2.sh`
+
+This Tier 2 track is **recipe/scale parity** (teacher strength, student size, long SGD), not a reproduction of SEArch’s DAG + sep-conv search space.
 
 **Paper use.** Methods subsection: “**Tier 2 parity experiments** (appendix / future work)” until configs and loop options land.
 

@@ -7,10 +7,11 @@ from pathlib import Path
 # Subdirectory names under runs/ and checkpoints/
 TIER1 = "tier1"
 TIER1B = "tier1b"
+TIER2 = "tier2"
 SMOKE = "smoke"
 OTHER = "other"
 
-RUNS_FAMILIES = frozenset({TIER1, TIER1B, SMOKE, OTHER})
+RUNS_FAMILIES = frozenset({TIER1, TIER1B, TIER2, SMOKE, OTHER})
 
 
 def infer_artifact_family(experiment_name: str) -> str:
@@ -18,6 +19,8 @@ def infer_artifact_family(experiment_name: str) -> str:
     Map experiment_name (may include _seed<N>) to a stable folder bucket.
     """
     n = experiment_name.lower()
+    if "tier2" in n:
+        return TIER2
     if "evolution_tier1b" in n or "cgse_evolution_tier1b" in n:
         return TIER1B
     if "smoke" in n:

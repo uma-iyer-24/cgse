@@ -14,6 +14,7 @@ import yaml
 
 from critics import StructuralCritic, STATE_DIM, build_critic_state
 from models.cifar_student import CifarGraphNet
+from models.resnet_cifar import ResNetCifar
 from models.student import StudentNet
 from ops.edge_widen import edge_widen
 from training.data import build_cifar10_loaders
@@ -145,24 +146,34 @@ def main():
     model_name = cfg.get("model", {}).get("name", "mlp")
 
     teacher = None
-    if model_name == "cifar_cnn":
+    if model_name in {"cifar_cnn", "resnet_cifar"}:
         train_loader, test_loader = build_cifar10_loaders(cfg)
         num_classes = int(cfg["model"]["num_classes"])
-        model = CifarGraphNet(num_classes=num_classes).to(device)
-        sample = next(iter(train_loader))[0][:2].to(device)
-        validate_forward(model, sample)
+        if model_name == "cifar_cnn":
+            model = CifarGraphNet(num_classes=num_classes).to(device)
+            sample = next(iter(train_loader))[0][:2].to(device)
+            validate_forward(model, sample)
+        else:
+            depth = int(cfg["model"].get("depth", 20))
+            base_width = int(cfg["model"].get("base_width", 16))
+            model = ResNetCifar(depth=depth, num_classes=num_classes, base_width=base_width).to(device)
 
     else:
         train_loader, test_loader = build_synthetic_loaders(cfg)
         model = StudentNet(**cfg["model"]).to(device)
 
     t_cfg = cfg.get("teacher") or {}
-    if model_name == "cifar_cnn" and bool(t_cfg.get("enabled", False)):
+    if model_name in {"cifar_cnn", "resnet_cifar"} and bool(t_cfg.get("enabled", False)):
         ckpt_path = t_cfg.get("checkpoint")
         if not ckpt_path:
             raise ValueError("teacher.enabled is true but teacher.checkpoint is missing")
         num_classes = int(cfg["model"]["num_classes"])
-        teacher = CifarGraphNet(num_classes=num_classes).to(device)
+        if model_name == "cifar_cnn":
+            teacher = CifarGraphNet(num_classes=num_classes).to(device)
+        else:
+            t_depth = int(t_cfg.get("depth", cfg["model"].get("teacher_depth", 56)))
+            t_base_width = int(t_cfg.get("base_width", cfg["model"].get("base_width", 16)))
+            teacher = ResNetCifar(depth=t_depth, num_classes=num_classes, base_width=t_base_width).to(device)
         resolved_teacher = str(resolve_teacher_checkpoint(str(ckpt_path)))
         load_model_weights(teacher, resolved_teacher)
         teacher.eval()
@@ -170,11 +181,50 @@ def main():
             p.requires_grad_(False)
         print(f"[teacher] Loaded frozen teacher from {resolved_teacher} (KD training).")
 
-    optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=float(train_cfg["lr"]),
-        weight_decay=float(train_cfg.get("weight_decay", 0.0)),
-    )
+    opt_name = str(train_cfg.get("optimizer", "adam")).lower()
+    lr = float(train_cfg["lr"])
+    weight_decay = float(train_cfg.get("weight_decay", 0.0))
+    if opt_name == "sgd":
+        momentum = float(train_cfg.get("momentum", 0.9))
+        nesterov = bool(train_cfg.get("nesterov", True))
+        optimizer = torch.optim.SGD(
+            model.parameters(),
+            lr=lr,
+            momentum=momentum,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
+        )
+    elif opt_name == "adam":
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=lr,
+            weight_decay=weight_decay,
+        )
+    else:
+        raise ValueError(f"Unknown optimizer '{opt_name}' (expected 'adam' or 'sgd').")
+
+    # Optional per-epoch LR schedule (Tier 2 parity uses long SGD).
+    sched_cfg = train_cfg.get("lr_schedule") or {}
+    sched_name = str(sched_cfg.get("name", "none")).lower()
+    scheduler = None
+    if sched_name in {"none", ""}:
+        scheduler = None
+    elif sched_name == "multistep":
+        milestones = [int(x) for x in (sched_cfg.get("milestones") or [])]
+        gamma = float(sched_cfg.get("gamma", 0.1))
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer, milestones=milestones, gamma=gamma
+        )
+    elif sched_name == "cosine":
+        tmax = int(sched_cfg.get("t_max", int(train_cfg["epochs"])))
+        eta_min = float(sched_cfg.get("eta_min", 0.0))
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=tmax, eta_min=eta_min
+        )
+    else:
+        raise ValueError(
+            f"Unknown lr_schedule.name '{sched_name}' (expected none|multistep|cosine)."
+        )
 
     mutation_cfg = cfg.get("mutation") or {}
     mutation_enabled = bool(mutation_cfg.get("enabled", False))
@@ -275,6 +325,8 @@ def main():
             kd_alpha=kd_alpha,
         )
         val_loss, val_acc = evaluate(model, device, test_loader)
+        if scheduler is not None:
+            scheduler.step()
 
         if pending_pg is not None:
             assert critic_on and critic is not None and critic_opt is not None

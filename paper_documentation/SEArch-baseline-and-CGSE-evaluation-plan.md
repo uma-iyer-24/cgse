@@ -89,7 +89,12 @@ Today most coverage is **scripts** under `scripts/`; **`tests/test_graph_ops.py`
 **Tier 2 (parity with Liang et al. CIFAR-10 KD table, approximate).**
 
 - **ResNet-56** teacher, **0.27M** student budget, their **optimizer schedule** (or document deviation).
-- Requires **new model configs** and training loop options (SGD, 400-epoch retrain)—not implemented yet.
+- Implemented (approx.) in this repo as a **ResNet CIFAR** track with **SGD + multistep LR**:
+  - Teacher: `configs/tier2/teacher_resnet56_cifar10.yaml`
+  - Student (CE): `configs/tier2/student_resnet20_cifar10_ce.yaml`
+  - Student (KD): `configs/tier2/student_resnet20_cifar10_kd.yaml` (points to a teacher checkpoint)
+  - Sweep: `scripts/run_tier2.sh`
+  - Note: this is **training-recipe parity**, not SEArch’s exact **DAG + sep-conv** operator space.
 
 **Tier 3.** CIFAR-100 and ImageNet as in SEArch—long-term.
 

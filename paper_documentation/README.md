@@ -18,6 +18,7 @@ The [repository `README.md`](../README.md) includes **Mermaid** diagrams (train/
 | [`CGSE-experiments-and-results-guide.md`](CGSE-experiments-and-results-guide.md) | **Paper-oriented** guide: Methods/Experiments framing, **all tiers**, SEArch comparability (Strategies A/B), **test hierarchy**, execution order, metrics, tables/figures, reproducibility checklist. Includes **§13–§15** (SEArch gap paragraph, Tier 1 number snapshot, deferred items). |
 | Results preview (static UI) | Repo root [`web/`](../web/): run `python scripts/build_results_site.py`, open `web/index.html` — charts + concept figures from `runs/*/metrics/*.csv`. Optional **GitHub Pages**: see `web/README.md`. |
 | [`draft-results-for-paper.md`](draft-results-for-paper.md) | **Copy-paste Results prose** (Tier 1 + Tier 1b) + reproducibility table stubs; update when seeds finish. |
+| Tier 2 configs | `configs/tier2/` — ResNet CIFAR teacher/student parity track (ResNet-56 teacher; ResNet-20 student; SGD + LR schedule). |
 | [`phase-plan-overview.pdf`](phase-plan-overview.pdf) | Phased roadmap (Phases 0–8). |
 | [`project-doc.pdf`](project-doc.pdf) | CGSE narrative, critic vs teacher, prior art (read alongside the SEArch paper). |
 | [`CGSE-implementation-log.md`](CGSE-implementation-log.md) | **Living implementation log**: code changes, decisions, configs, and training run records (for paper Methods / Appendix). Includes a **[plain-language Phase 2](CGSE-implementation-log.md#plain-language-phase-2)** summary (non-technical “what we built and why”). |
