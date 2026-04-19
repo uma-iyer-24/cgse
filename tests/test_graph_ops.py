@@ -13,6 +13,7 @@ from models.cifar_student import CifarGraphNet
 from ops.edge_split import edge_split
 from ops.edge_widen import edge_widen
 from ops.edge_widen_conv import edge_widen_conv3_cifar
+from ops.resnet_head_widen import widen_resnet_head
 from training.loop import kd_distillation_loss, train_one_epoch
 from utils.artifact_families import (
     canonicalize_runs_artifact,
@@ -126,6 +127,21 @@ def test_split_before_fc1_then_widen_conv3_forward():
     x = torch.randn(2, 3, 32, 32, device=device)
     y = m(x)
     assert y.shape == (2, 10)
+
+
+@pytest.mark.parametrize("device", _test_devices())
+def test_resnet_head_widen_preserves_logits_nearly(device):
+    from models.resnet_cifar import ResNetCifar
+
+    m = ResNetCifar(depth=20, num_classes=10).to(device)
+    x = torch.randn(4, 3, 32, 32, device=device)
+    with torch.no_grad():
+        y0 = m(x)
+    widen_resnet_head(m, hidden_delta=32)
+    with torch.no_grad():
+        y1 = m(x)
+    # Net2Net init should preserve outputs up to floating error
+    assert torch.allclose(y0, y1, atol=1e-5, rtol=1e-5)
 
 
 def test_split_before_fc2_forward():

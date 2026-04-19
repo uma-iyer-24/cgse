@@ -22,6 +22,8 @@ for s in $SEEDS; do
   run_one configs/tier2/teacher_resnet56_cifar10.yaml teacher "$s"
   run_one configs/tier2/student_resnet20_cifar10_ce.yaml student_ce "$s"
   run_one configs/tier2/student_resnet20_cifar10_kd.yaml student_kd "$s"
+  run_one configs/tier2/student_resnet20_cifar10_sched_headwiden.yaml student_sched_headwiden "$s"
+  run_one configs/tier2/student_resnet20_cifar10_cgse_headwiden.yaml student_cgse_headwiden "$s"
 done
 
 echo "Tier 2 sweep done. See runs/tier2/."

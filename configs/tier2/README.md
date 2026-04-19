@@ -37,5 +37,15 @@ python train.py --config configs/tier2/student_resnet20_cifar10_ce.yaml --device
 python train.py --config configs/tier2/student_resnet20_cifar10_kd.yaml --device auto --seed 41
 ```
 
+3. Optional additional Tier 2 rows (structural edit on ResNet head):
+
+These mirror Tier 1’s “scheduled widen” and “CGSE” rows, but using a **ResNet-safe**
+mutation: **Net2Net-style widening of the classifier head** (`mutation.op: resnet_head_widen`).
+
+```bash
+python train.py --config configs/tier2/student_resnet20_cifar10_sched_headwiden.yaml --device auto --seed 41
+python train.py --config configs/tier2/student_resnet20_cifar10_cgse_headwiden.yaml --device auto --seed 41
+```
+
 For paper claims, run seeds 41–43 and report mean ± std.
 

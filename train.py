@@ -18,6 +18,7 @@ from models.cifar_student import CifarGraphNet
 from models.resnet_cifar import ResNetCifar
 from models.student import StudentNet
 from ops.edge_widen import edge_widen
+from ops.resnet_head_widen import widen_resnet_head
 from training.data import build_cifar10_loaders
 from training.loop import evaluate, train_one_epoch
 from training.synthetic import build_synthetic_loaders
@@ -104,6 +105,43 @@ def _run_edge_widen_mutation(
                 "target_linear_in": in_f,
                 "target_linear_out_before": out_before,
                 "target_linear_out_after": out_after,
+                "num_parameters_before": params_before,
+                "num_parameters_after": params_after,
+            },
+        )
+    return optimizer
+
+
+def _run_resnet_head_widen_mutation(
+    model,
+    optimizer,
+    hidden_delta: int,
+    *,
+    mutation_log_jsonl: Path | None,
+    experiment_name: str,
+    run_ts: str,
+    epoch: int,
+    gate_tag: str,
+):
+    params_before = count_trainable_parameters(model)
+    widen_resnet_head(model, hidden_delta=hidden_delta)
+    optimizer = refresh_optimizer(optimizer, model)
+    params_after = count_trainable_parameters(model)
+    print(
+        f"[mutation] ({gate_tag}) Applied widen_resnet_head(delta={hidden_delta}) after epoch {epoch}; "
+        f"params {params_before} -> {params_after}; optimizer refreshed."
+    )
+    if mutation_log_jsonl:
+        append_mutation_jsonl(
+            mutation_log_jsonl,
+            {
+                "event": "mutation",
+                "op": "resnet_head_widen",
+                "gate": gate_tag,
+                "run_id": f"{experiment_name}_{run_ts}",
+                "experiment": experiment_name,
+                "epoch_completed": epoch,
+                "delta": int(hidden_delta),
                 "num_parameters_before": params_before,
                 "num_parameters_after": params_after,
             },
@@ -231,6 +269,7 @@ def main():
     mutation_enabled = bool(mutation_cfg.get("enabled", False))
     once_after = mutation_cfg.get("once_after_epoch")
     widen_delta = int(mutation_cfg.get("widen_delta", 32))
+    mutation_op = str(mutation_cfg.get("op", "edge_widen")).lower()
     mutation_applied = False
     mutation_log_jsonl = normalize_run_artifact_path(
         _path_stem_suffix(mutation_cfg.get("log_jsonl"), seed_tag)
@@ -382,16 +421,32 @@ def main():
             and once_after is not None
             and epoch == int(once_after)
         ):
-            optimizer = _run_edge_widen_mutation(
-                model,
-                optimizer,
-                widen_delta,
-                mutation_log_jsonl=mlog_path,
-                experiment_name=experiment_name,
-                run_ts=run_ts,
-                epoch=epoch,
-                gate_tag="schedule",
-            )
+            if mutation_op == "edge_widen":
+                optimizer = _run_edge_widen_mutation(
+                    model,
+                    optimizer,
+                    widen_delta,
+                    mutation_log_jsonl=mlog_path,
+                    experiment_name=experiment_name,
+                    run_ts=run_ts,
+                    epoch=epoch,
+                    gate_tag="schedule",
+                )
+            elif mutation_op == "resnet_head_widen":
+                if model_name != "resnet_cifar":
+                    raise ValueError("mutation.op=resnet_head_widen requires model.name=resnet_cifar")
+                optimizer = _run_resnet_head_widen_mutation(
+                    model,
+                    optimizer,
+                    widen_delta,
+                    mutation_log_jsonl=mlog_path,
+                    experiment_name=experiment_name,
+                    run_ts=run_ts,
+                    epoch=epoch,
+                    gate_tag="schedule",
+                )
+            else:
+                raise ValueError(f"Unknown mutation.op '{mutation_op}'")
             mutation_applied = True
 
         if (
@@ -412,16 +467,32 @@ def main():
             if forced:
                 action_val = 1
             if action_val == 1:
-                optimizer = _run_edge_widen_mutation(
-                    model,
-                    optimizer,
-                    widen_delta,
-                    mutation_log_jsonl=mlog_path,
-                    experiment_name=experiment_name,
-                    run_ts=run_ts,
-                    epoch=epoch,
-                    gate_tag="critic",
-                )
+                if mutation_op == "edge_widen":
+                    optimizer = _run_edge_widen_mutation(
+                        model,
+                        optimizer,
+                        widen_delta,
+                        mutation_log_jsonl=mlog_path,
+                        experiment_name=experiment_name,
+                        run_ts=run_ts,
+                        epoch=epoch,
+                        gate_tag="critic",
+                    )
+                elif mutation_op == "resnet_head_widen":
+                    if model_name != "resnet_cifar":
+                        raise ValueError("mutation.op=resnet_head_widen requires model.name=resnet_cifar")
+                    optimizer = _run_resnet_head_widen_mutation(
+                        model,
+                        optimizer,
+                        widen_delta,
+                        mutation_log_jsonl=mlog_path,
+                        experiment_name=experiment_name,
+                        run_ts=run_ts,
+                        epoch=epoch,
+                        gate_tag="critic",
+                    )
+                else:
+                    raise ValueError(f"Unknown mutation.op '{mutation_op}'")
                 mutation_applied = True
                 pending_pg = {
                     "state": state.detach().clone(),

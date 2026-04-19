@@ -1,0 +1,47 @@
+# Tier 2: student (ResNet-20) with a scheduled Net2Net-style head widening.
+experiment:
+  name: tier2_student_resnet20_cifar10_sched_headwiden
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 200
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: multistep
+    milestones: [100, 150]
+    gamma: 0.1
+  log_csv: runs/tier2/metrics/tier2_student_resnet20_sched_headwiden_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: true
+  op: resnet_head_widen
+  once_after_epoch: 100
+  widen_delta: 64
+  log_jsonl: runs/tier2/mutations/tier2_student_resnet20_sched_headwiden_mutations.jsonl
+
+critic:
+  enabled: false
+
