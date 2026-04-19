@@ -108,6 +108,23 @@ This Tier 2 track is **recipe/scale parity** (teacher strength, student size, lo
 
 ---
 
+## 4.1 CGSE vs SEArch — where CGSE can be better (paper-ready table)
+
+This table is meant for the **Discussion** or a “Why CGSE?” paragraph in **Experiments**. It highlights *meaningful* comparison axes where CGSE can legitimately outperform SEArch/NAS-style approaches **without** requiring operator-for-operator reproduction.
+
+| Dimension / metric | CGSE (this repo) | SEArch (Liang et al., 2025) | Why it matters / real-world applications |
+|---|---|---|---|
+| **Teacher requirement** | **Optional**. Core CGSE runs **teacher-free** (`teacher.enabled: false`). | **Required** (teacher-guided evolution + attention/KD signals). | Teacher models may be unavailable (privacy/IP), too costly, or hard to maintain across domains; teacher-free methods are easier to deploy and reproduce. |
+| **Teacher compute overhead** (`teacher_forwards`) | **0** for CGSE arms; **>0** only when you intentionally enable KD. Logged as cumulative `teacher_forwards`. | Substantial by design (teacher inference is central to guidance). | In production or low-budget research, teacher inference cost can dominate; reducing it can be a significant practical improvement. |
+| **Accuracy per compute** (`val_acc` vs `wall_seconds`) | Report accuracy as a function of **wall time**, including any auxiliary compute. Logged as `epoch_seconds` / `wall_seconds`. | Often reported as accuracy after long training/search; auxiliary compute is not always priced into headline numbers. | Enables “time-to-accuracy” comparisons (e.g., fast iteration, limited GPU-hours) where CGSE may win even if peak accuracy is close. |
+| **Teacher-free constraint** | Defined and measurable: `teacher_forwards = 0` while still allowing evolution (critic uses internal signals). | Not applicable (method assumes teacher-derived guidance). | A legitimate win condition: “best achievable accuracy under no-teacher constraint,” relevant to edge devices, regulated data, and teacher scarcity. |
+| **Search / evolution efficiency** (edits-to-threshold) | Can report **# edits / stages** to reach a target accuracy (Tier 1b) using JSONL mutation logs and staged curves. | Iterative growth under a budget, but tied to teacher scoring and often followed by long retrain. | Measures how quickly the method finds useful edits; relevant when structural evaluations are expensive. |
+| **Robustness to teacher mismatch** | Not dependent on teacher alignment; critic uses internal optimization dynamics. | Can be sensitive to teacher/student/domain mismatch. | Real datasets shift; teacher mismatch can degrade KD-driven guidance. |
+| **Operational simplicity** | Single training loop + optional critic; fewer external dependencies. | More moving parts (teacher features/attention, guidance machinery). | Reduced engineering overhead helps reproducibility and reduces failure modes; easier for collaborators to run. |
+| **Raw accuracy parity claim** (Tier 2) | **Measured via Tier 2** (ResNet-56 teacher / ResNet-20 student, SGD + schedule). | Paper-reported tables on CIFAR/ImageNet. | This is the “headline table” axis reviewers expect; it’s harder but now well-posed in Tier 2. |
+
+**How we report this in Tier 2.** For Tier 2 configs (`configs/tier2/`) we will report both (i) student test accuracy (`val_acc`) at the end of training and (ii) efficiency/dependency metrics (`teacher_forwards`, `wall_seconds`, accuracy-vs-time curves). That supports claims like “similar accuracy at lower auxiliary compute,” which is a meaningful improvement even when teacher baselines are strong.
+
 ## 5. Methods text — templates you can paste and fill
 
 ### 5.1 Dataset
