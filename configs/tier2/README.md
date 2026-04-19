@@ -9,6 +9,19 @@ Goal: run a **ResNet teacher/student KD setting** closer to SEArch’s CIFAR KD 
 This repo does **not** reproduce SEArch’s exact DAG + sep-conv search space; Tier 2 is
 for **numeric/training-recipe parity** (teacher strength, student size, long SGD).
 
+## What to report (Tier 2 + “beat SEArch/NAS” metrics)
+
+In addition to accuracy and params, Tier 2 is where we report **efficiency / dependency**
+metrics that CGSE is designed to improve:
+
+- **Teacher-free constraint**: results for arms with **`teacher.enabled: false`** (teacher compute = 0).
+- **Teacher compute**: `teacher_forwards` (cumulative) — number of teacher forward passes.
+- **Wall-clock**: `wall_seconds` (cumulative), `epoch_seconds` (per epoch).
+- **Accuracy per compute**: compare `val_acc` vs `wall_seconds` curves.
+- **Edits-to-threshold** (Tier 1b / evolution arms): # mutation events in JSONL until reaching a target `val_acc`.
+
+All of these are logged in the per-epoch metrics CSV columns produced by `train.py`.
+
 ## Suggested order
 
 1. Train a teacher:

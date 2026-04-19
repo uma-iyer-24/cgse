@@ -7,6 +7,7 @@ See paper_documentation/SEArch-baseline-and-CGSE-evaluation-plan.md §7.
 from __future__ import annotations
 
 from pathlib import Path
+import time
 
 import torch
 import torch.nn.functional as F
@@ -79,13 +80,18 @@ def run_evolution_training(
     anchor_train_loss = None
     global_epoch = 0
     total_epochs = num_stages * epochs_per_stage
+    run_started = time.perf_counter()
+    wall_seconds = 0.0
+    cum_teacher_forwards = 0
+    cum_train_steps = 0
 
     sample = next(iter(train_loader))[0][:2].to(device)
     stopped_early = False
 
     for stage in range(num_stages):
         for _ in range(epochs_per_stage):
-            train_loss, train_acc = train_one_epoch(
+            t0 = time.perf_counter()
+            train_loss, train_acc, stats = train_one_epoch(
                 model,
                 optimizer,
                 device,
@@ -93,8 +99,13 @@ def run_evolution_training(
                 teacher=teacher,
                 kd_temperature=kd_temp,
                 kd_alpha=kd_alpha,
+                return_stats=True,
             )
             val_loss, val_acc = evaluate(model, device, test_loader)
+            epoch_seconds = time.perf_counter() - t0
+            wall_seconds = time.perf_counter() - run_started
+            cum_teacher_forwards += int(stats.get("teacher_forwards", 0))
+            cum_train_steps += int(stats.get("train_steps", 0))
 
             if pending_pg is not None and critic_mod is not None and critic_opt is not None:
                 R = val_acc - pending_pg["val_at_mutation"]
@@ -169,6 +180,12 @@ def run_evolution_training(
                             if critic_score_val is not None
                             else ""
                         ),
+                        "optimizer": str(type(optimizer).__name__).lower(),
+                        "lr": f"{float(optimizer.param_groups[0].get('lr', float('nan'))):.8f}",
+                        "epoch_seconds": f"{epoch_seconds:.6f}",
+                        "wall_seconds": f"{wall_seconds:.6f}",
+                        "train_steps": str(cum_train_steps),
+                        "teacher_forwards": str(cum_teacher_forwards),
                     },
                 )
 

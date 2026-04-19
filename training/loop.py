@@ -21,6 +21,8 @@ def train_one_epoch(
     teacher: Optional[nn.Module] = None,
     kd_temperature: float = 4.0,
     kd_alpha: float = 0.5,
+    *,
+    return_stats: bool = False,
 ):
     """
     If `teacher` is set, loss = (1 - kd_alpha) * CE + kd_alpha * KD (student logits vs frozen teacher).
@@ -32,6 +34,8 @@ def train_one_epoch(
     total_loss = 0.0
     correct = 0
     total = 0
+    train_steps = 0
+    teacher_forwards = 0
     for x, y in loader:
         x = x.to(device, non_blocking=True)
         y = y.to(device, non_blocking=True)
@@ -41,6 +45,7 @@ def train_one_epoch(
         if teacher is not None:
             with torch.no_grad():
                 t_logits = teacher(x)
+            teacher_forwards += 1
             kd = kd_distillation_loss(logits, t_logits, kd_temperature)
             alpha = float(kd_alpha)
             loss = (1.0 - alpha) * ce + alpha * kd
@@ -48,11 +53,15 @@ def train_one_epoch(
             loss = ce
         loss.backward()
         optimizer.step()
+        train_steps += 1
         bs = x.size(0)
         total_loss += loss.item() * bs
         correct += (logits.argmax(1) == y).sum().item()
         total += bs
-    return total_loss / max(total, 1), correct / max(total, 1)
+    out = (total_loss / max(total, 1), correct / max(total, 1))
+    if not return_stats:
+        return out
+    return out[0], out[1], {"train_steps": train_steps, "teacher_forwards": teacher_forwards}
 
 
 @torch.no_grad()

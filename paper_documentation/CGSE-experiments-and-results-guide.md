@@ -149,12 +149,33 @@ This Tier 2 track is **recipe/scale parity** (teacher strength, student size, lo
 - **Training loss / accuracy curves** (CSV per epoch).
 - **Wall-clock** and **hardware** (CPU / CUDA / MPS, GPU model).
 - **Stability across seeds** (mean ± std for Tier 1 and Tier 1b headline rows).
+- **Teacher compute / dependency cost** (Tier 2 and teacher arms): teacher forward passes, and/or wall-clock with and without teacher.
+- **Search / evolution efficiency**: number of edits or stages required to reach a target accuracy (“edits-to-threshold”).
 
 ### 6.3 Statistical protocol
 
 - **≥3 random seeds** for any claim about **superiority** of one arm over another.
 - Report **mean ± standard deviation** for final **test accuracy** and, if relevant, **final parameter count** (often deterministic given a fixed schedule; critic arm may vary).
 - Fix **seeds** for **data shuffling** and **initialization** via `train.py --seed N` (see `utils/repro.py`).
+
+### 6.4 Efficiency metrics (where CGSE can beat teacher/NAS legitimately)
+
+These are the most defensible “CGSE wins” metrics because they price in what teacher-guided systems and many NAS pipelines assume (extra models, extra compute):
+
+- **Teacher-free constraint**: accuracy under a rule “no teacher model / no teacher forward passes.” SEArch-style guidance is not applicable here; CGSE remains applicable.
+- **Accuracy per compute**: accuracy vs **wall-clock seconds** (or GPU-hours), counting any teacher forward-pass overhead in the teacher/KD baselines.
+- **Teacher forward-pass count**: number of teacher forward passes performed during training (proxy for extra inference compute).
+- **Edits-to-threshold**: minimum structural edits needed to reach a target accuracy (or area under accuracy-vs-edits curve).
+
+**Implementation in this repo (logged in CSV):**
+
+- `epoch_seconds`: wall time for the epoch (train + eval).
+- `wall_seconds`: cumulative wall time since start of run.
+- `train_steps`: cumulative number of training batches processed.
+- `teacher_forwards`: cumulative number of teacher forward passes (equals `train_steps` when KD teacher is enabled; 0 otherwise).
+- `optimizer`, `lr`: for reproducibility (Tier 2 parity uses SGD + schedule).
+
+These fields are appended by `train.py` / `training/evolution_train.py` via `utils/metrics_csv.py`.
 
 ---
 

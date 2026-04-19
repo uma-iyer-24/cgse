@@ -14,6 +14,13 @@ METRIC_FIELDS = [
     "num_parameters",
     "mutation_applied_yet",
     "critic_score",
+    # Efficiency / comparability metrics (Tier 2 & beyond).
+    "optimizer",
+    "lr",
+    "epoch_seconds",
+    "wall_seconds",
+    "train_steps",
+    "teacher_forwards",
 ]
 
 

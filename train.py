@@ -7,6 +7,7 @@ control; (2) CGSE — *critic* gates widen timing (REINFORCE on post-mutation va
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
+import time
 
 import torch
 import torch.nn.functional as F
@@ -272,6 +273,10 @@ def main():
     )
     log_csv = canonicalize_runs_artifact(log_csv, experiment_name, "metrics")
     run_ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_started = time.perf_counter()
+    wall_seconds = 0.0
+    cum_teacher_forwards = 0
+    cum_train_steps = 0
 
     evo_cfg = cfg.get("evolution") or {}
     if bool(evo_cfg.get("enabled")):
@@ -315,7 +320,8 @@ def main():
     mlog_path = Path(mutation_log_jsonl) if mutation_log_jsonl else None
 
     for epoch in range(epochs):
-        train_loss, train_acc = train_one_epoch(
+        t0 = time.perf_counter()
+        train_loss, train_acc, stats = train_one_epoch(
             model,
             optimizer,
             device,
@@ -323,8 +329,13 @@ def main():
             teacher=teacher,
             kd_temperature=kd_temp,
             kd_alpha=kd_alpha,
+            return_stats=True,
         )
         val_loss, val_acc = evaluate(model, device, test_loader)
+        epoch_seconds = time.perf_counter() - t0
+        wall_seconds = time.perf_counter() - run_started
+        cum_teacher_forwards += int(stats.get("teacher_forwards", 0))
+        cum_train_steps += int(stats.get("train_steps", 0))
         if scheduler is not None:
             scheduler.step()
 
@@ -432,6 +443,7 @@ def main():
 
         n_params = count_trainable_parameters(model)
         if log_csv:
+            lr_now = float(optimizer.param_groups[0].get("lr", float("nan")))
             row = {
                 "utc_ts": run_ts,
                 "experiment": experiment_name,
@@ -445,6 +457,12 @@ def main():
                 "critic_score": (
                     f"{critic_score_val:.6f}" if critic_score_val is not None else ""
                 ),
+                "optimizer": str(opt_name),
+                "lr": f"{lr_now:.8f}",
+                "epoch_seconds": f"{epoch_seconds:.6f}",
+                "wall_seconds": f"{wall_seconds:.6f}",
+                "train_steps": str(cum_train_steps),
+                "teacher_forwards": str(cum_teacher_forwards),
             }
             append_metrics_csv(Path(log_csv), row)
 
