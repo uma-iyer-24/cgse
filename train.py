@@ -14,11 +14,13 @@ import torch.nn.functional as F
 import yaml
 
 from critics import StructuralCritic, STATE_DIM, build_critic_state
+from critics.discrete_critic import DiscreteMutationCritic
 from models.cifar_student import CifarGraphNet
 from models.resnet_cifar import ResNetCifar
 from models.student import StudentNet
 from ops.edge_widen import edge_widen
 from ops.resnet_head_widen import widen_resnet_head
+from ops.resnet_insert_block import insert_resnet_block_layer3
 from training.data import build_cifar10_loaders
 from training.loop import evaluate, train_one_epoch
 from training.synthetic import build_synthetic_loaders
@@ -144,6 +146,43 @@ def _run_resnet_head_widen_mutation(
                 "delta": int(hidden_delta),
                 "num_parameters_before": params_before,
                 "num_parameters_after": params_after,
+            },
+        )
+    return optimizer
+
+
+def _run_resnet_insert_block_mutation(
+    model,
+    optimizer,
+    *,
+    mutation_log_jsonl: Path | None,
+    experiment_name: str,
+    run_ts: str,
+    epoch: int,
+    gate_tag: str,
+):
+    params_before = count_trainable_parameters(model)
+    insert_resnet_block_layer3(model, position="end")
+    optimizer = refresh_optimizer(optimizer, model)
+    params_after = count_trainable_parameters(model)
+    print(
+        f"[mutation] ({gate_tag}) Applied resnet_insert_block(layer3,end) after epoch {epoch}; "
+        f"params {params_before} -> {params_after}; optimizer refreshed."
+    )
+    if mutation_log_jsonl:
+        append_mutation_jsonl(
+            mutation_log_jsonl,
+            {
+                "event": "mutation",
+                "op": "resnet_insert_block_layer3",
+                "gate": gate_tag,
+                "run_id": f"{experiment_name}_{run_ts}",
+                "experiment": experiment_name,
+                "epoch_completed": epoch,
+                "num_parameters_before": params_before,
+                "num_parameters_after": params_after,
+                "position": "end",
+                "layer": "layer3",
             },
         )
     return optimizer
@@ -288,6 +327,10 @@ def main():
 
     critic = None
     critic_opt = None
+    discrete_critic = None
+    discrete_opt = None
+    discrete_actions = list(c_cfg.get("actions") or [])
+    discrete_on = critic_on and bool(discrete_actions)
     win_start = int(c_cfg.get("window_start_epoch", 5))
     win_end = int(c_cfg.get("window_end_epoch", 35))
     eps = float(c_cfg.get("epsilon", 0.2))
@@ -302,6 +345,17 @@ def main():
             lr=float(c_cfg.get("lr", 0.01)),
             weight_decay=float(c_cfg.get("weight_decay", 0.0)),
         )
+        if discrete_on:
+            discrete_critic = DiscreteMutationCritic(
+                STATE_DIM,
+                max_actions=max(8, len(discrete_actions)),
+                hidden_dim=int(c_cfg.get("hidden_dim", 64)),
+            ).to(device)
+            discrete_opt = torch.optim.Adam(
+                discrete_critic.parameters(),
+                lr=float(c_cfg.get("lr", 0.01)),
+                weight_decay=float(c_cfg.get("weight_decay", 0.0)),
+            )
         print(
             f"[critic] CGSE mutation gating: window [{win_start}, {win_end}], "
             f"ε={eps}, force_end={force_end}"
@@ -379,16 +433,35 @@ def main():
             scheduler.step()
 
         if pending_pg is not None:
-            assert critic_on and critic is not None and critic_opt is not None
+            assert critic_on
             R = val_acc - pending_pg["val_at_mutation"]
             if not pending_pg["skip_pg"]:
-                critic_opt.zero_grad()
-                s = pending_pg["state"]
-                loss_pg = -F.logsigmoid(critic(s)) * torch.as_tensor(
-                    R, device=device, dtype=torch.float32
-                )
-                loss_pg.backward()
-                critic_opt.step()
+                if pending_pg.get("mode") == "discrete":
+                    assert discrete_critic is not None and discrete_opt is not None
+                    st = pending_pg["state"].to(device)
+                    legal = pending_pg["legal_actions"]
+                    choice = int(pending_pg["choice"])
+                    idx_t = torch.tensor(
+                        [discrete_actions.index(n) for n in legal],
+                        device=device,
+                        dtype=torch.long,
+                    )
+                    logits_full = discrete_critic(st)
+                    logits = logits_full[idx_t]
+                    logp = F.log_softmax(logits, dim=-1)[choice]
+                    loss_pg = -logp * torch.as_tensor(R, device=device, dtype=torch.float32)
+                    discrete_opt.zero_grad()
+                    loss_pg.backward()
+                    discrete_opt.step()
+                else:
+                    assert critic is not None and critic_opt is not None
+                    critic_opt.zero_grad()
+                    s = pending_pg["state"]
+                    loss_pg = -F.logsigmoid(critic(s)) * torch.as_tensor(
+                        R, device=device, dtype=torch.float32
+                    )
+                    loss_pg.backward()
+                    critic_opt.step()
             pending_pg = None
 
         if epoch == 0:
@@ -456,31 +529,48 @@ def main():
             and state is not None
             and win_start <= epoch <= win_end
         ):
-            logit = critic(state)
-            p = torch.sigmoid(logit)
-            explored = bool((torch.rand((), device=device) < eps).item())
-            if explored:
-                action_val = int(torch.randint(0, 2, (1,), device=device).item())
-            else:
-                action_val = int(torch.bernoulli(p).item())
-            forced = bool(force_end and epoch == win_end and action_val == 0)
-            if forced:
-                action_val = 1
-            if action_val == 1:
-                if mutation_op == "edge_widen":
-                    optimizer = _run_edge_widen_mutation(
-                        model,
-                        optimizer,
-                        widen_delta,
-                        mutation_log_jsonl=mlog_path,
-                        experiment_name=experiment_name,
-                        run_ts=run_ts,
-                        epoch=epoch,
-                        gate_tag="critic",
-                    )
-                elif mutation_op == "resnet_head_widen":
+            if discrete_on:
+                assert discrete_critic is not None
+                legal = [a for a in discrete_actions if a not in ("", None)]
+                # Filter illegal ops for the current model.
+                if model_name != "resnet_cifar":
+                    legal = [a for a in legal if a in {"noop", "edge_widen"}]
+                else:
+                    legal = [a for a in legal if a in {"noop", "resnet_head_widen", "resnet_insert_block"}]
+                if not legal:
+                    raise ValueError("critic.actions produced no legal actions for this model")
+
+                logits_full = discrete_critic(state)
+                idx_t = torch.tensor(
+                    [discrete_actions.index(n) for n in legal],
+                    device=device,
+                    dtype=torch.long,
+                )
+                logits = logits_full[idx_t]
+                probs = F.softmax(logits.detach(), dim=-1)
+                explored = bool((torch.rand((), device=device) < eps).item())
+                if explored:
+                    choice = int(torch.randint(0, len(legal), (1,), device=device).item())
+                    skip_pg = True
+                else:
+                    choice = int(torch.multinomial(probs, 1).item())
+                    skip_pg = False
+                op = legal[choice]
+                forced = bool(force_end and epoch == win_end and op == "noop" and len(legal) > 1)
+                if forced:
+                    # If forced, pick the first non-noop action deterministically.
+                    for i, name in enumerate(legal):
+                        if name != "noop":
+                            choice = i
+                            op = name
+                            break
+                    skip_pg = True
+
+                if op == "noop":
+                    pass
+                elif op == "resnet_head_widen":
                     if model_name != "resnet_cifar":
-                        raise ValueError("mutation.op=resnet_head_widen requires model.name=resnet_cifar")
+                        raise ValueError("resnet_head_widen requires model.name=resnet_cifar")
                     optimizer = _run_resnet_head_widen_mutation(
                         model,
                         optimizer,
@@ -491,14 +581,87 @@ def main():
                         epoch=epoch,
                         gate_tag="critic",
                     )
+                    mutation_applied = True
+                elif op == "resnet_insert_block":
+                    if model_name != "resnet_cifar":
+                        raise ValueError("resnet_insert_block requires model.name=resnet_cifar")
+                    optimizer = _run_resnet_insert_block_mutation(
+                        model,
+                        optimizer,
+                        mutation_log_jsonl=mlog_path,
+                        experiment_name=experiment_name,
+                        run_ts=run_ts,
+                        epoch=epoch,
+                        gate_tag="critic",
+                    )
+                    mutation_applied = True
                 else:
-                    raise ValueError(f"Unknown mutation.op '{mutation_op}'")
-                mutation_applied = True
+                    raise ValueError(f"Unknown critic discrete action '{op}'")
+
                 pending_pg = {
+                    "mode": "discrete",
                     "state": state.detach().clone(),
+                    "legal_actions": list(legal),
+                    "choice": int(choice),
                     "val_at_mutation": float(val_acc),
-                    "skip_pg": explored or forced,
+                    "skip_pg": bool(skip_pg),
                 }
+            else:
+                logit = critic(state)
+                p = torch.sigmoid(logit)
+                explored = bool((torch.rand((), device=device) < eps).item())
+                if explored:
+                    action_val = int(torch.randint(0, 2, (1,), device=device).item())
+                else:
+                    action_val = int(torch.bernoulli(p).item())
+                forced = bool(force_end and epoch == win_end and action_val == 0)
+                if forced:
+                    action_val = 1
+                if action_val == 1:
+                    if mutation_op == "edge_widen":
+                        optimizer = _run_edge_widen_mutation(
+                            model,
+                            optimizer,
+                            widen_delta,
+                            mutation_log_jsonl=mlog_path,
+                            experiment_name=experiment_name,
+                            run_ts=run_ts,
+                            epoch=epoch,
+                            gate_tag="critic",
+                        )
+                    elif mutation_op == "resnet_head_widen":
+                        if model_name != "resnet_cifar":
+                            raise ValueError("mutation.op=resnet_head_widen requires model.name=resnet_cifar")
+                        optimizer = _run_resnet_head_widen_mutation(
+                            model,
+                            optimizer,
+                            widen_delta,
+                            mutation_log_jsonl=mlog_path,
+                            experiment_name=experiment_name,
+                            run_ts=run_ts,
+                            epoch=epoch,
+                            gate_tag="critic",
+                        )
+                    elif mutation_op == "resnet_insert_block":
+                        if model_name != "resnet_cifar":
+                            raise ValueError("mutation.op=resnet_insert_block requires model.name=resnet_cifar")
+                        optimizer = _run_resnet_insert_block_mutation(
+                            model,
+                            optimizer,
+                            mutation_log_jsonl=mlog_path,
+                            experiment_name=experiment_name,
+                            run_ts=run_ts,
+                            epoch=epoch,
+                            gate_tag="critic",
+                        )
+                    else:
+                        raise ValueError(f"Unknown mutation.op '{mutation_op}'")
+                    mutation_applied = True
+                    pending_pg = {
+                        "state": state.detach().clone(),
+                        "val_at_mutation": float(val_acc),
+                        "skip_pg": explored or forced,
+                    }
 
         line = (
             f"Epoch {epoch:03d} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "

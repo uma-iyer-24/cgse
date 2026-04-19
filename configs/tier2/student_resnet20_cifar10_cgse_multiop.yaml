@@ -1,0 +1,56 @@
+# Tier 2: CGSE discrete multi-op (teacher-free) — critic chooses among noop/head widen/insert block.
+experiment:
+  name: tier2_student_resnet20_cifar10_cgse_multiop
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 200
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: multistep
+    milestones: [100, 150]
+    gamma: 0.1
+  log_csv: runs/tier2/metrics/tier2_student_resnet20_cgse_multiop_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: true
+  # For head-widen action, delta is taken from widen_delta.
+  widen_delta: 64
+  log_jsonl: runs/tier2/mutations/tier2_student_resnet20_cgse_multiop_mutations.jsonl
+
+critic:
+  enabled: true
+  # Decision epoch parity: choose exactly once at epoch 100.
+  window_start_epoch: 100
+  window_end_epoch: 100
+  force_mutate_end_of_window: false
+  epsilon: 0.25
+  lr: 0.01
+  hidden_dim: 64
+  weight_decay: 0.0
+  # Discrete action set for Tier 2 multi-op CGSE:
+  actions: [noop, resnet_head_widen, resnet_insert_block]
+

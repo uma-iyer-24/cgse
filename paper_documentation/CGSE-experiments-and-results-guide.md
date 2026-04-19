@@ -88,6 +88,17 @@ Tiers are **layers of evidence**, not mutually exclusive code paths. Later tiers
 
 This Tier 2 track is **recipe/scale parity** (teacher strength, student size, long SGD), not a reproduction of SEArch’s DAG + sep-conv search space.
 
+**Tier 2 additional rows (structural edits on ResNet).** To keep Tier 2 comparable while adding “evolution” capability, we implement ResNet-safe edits:
+
+- `resnet_head_widen`: Net2Net-style widening of the classifier head (function-preserving at init).
+- `resnet_insert_block`: deepen by inserting an identity-initialized residual block into `layer3` (function-preserving at init).
+
+Tier 2 can therefore include:
+
+- **Scheduled** head widen (`student_resnet20_cifar10_sched_headwiden.yaml`)
+- **CGSE** head widen (binary gating) (`student_resnet20_cifar10_cgse_headwiden.yaml`)
+- **CGSE multi-op** discrete action choice (`student_resnet20_cifar10_cgse_multiop.yaml`), where the critic chooses one of `{noop, resnet_head_widen, resnet_insert_block}` at the decision epoch.
+
 **Paper use.** Methods subsection: “**Tier 2 parity experiments** (appendix / future work)” until configs and loop options land.
 
 ### 3.4 Tier 3 — Dataset scale-out

@@ -47,5 +47,17 @@ python train.py --config configs/tier2/student_resnet20_cifar10_sched_headwiden.
 python train.py --config configs/tier2/student_resnet20_cifar10_cgse_headwiden.yaml --device auto --seed 41
 ```
 
+4. Tier 2 multi-op CGSE (critic chooses which edit to apply):
+
+This is a discrete action variant where the critic chooses one action at the decision epoch:
+
+- `noop`
+- `resnet_head_widen` (Net2Net head widen)
+- `resnet_insert_block` (deepen by inserting a residual block into `layer3`)
+
+```bash
+python train.py --config configs/tier2/student_resnet20_cifar10_cgse_multiop.yaml --device auto --seed 41
+```
+
 For paper claims, run seeds 41–43 and report mean ± std.
 
