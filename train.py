@@ -53,6 +53,21 @@ def _path_stem_suffix(path: str | None, suffix: str) -> str | None:
     return str(p.parent / f"{p.stem}{suffix}{p.suffix}")
 
 
+def _resolve_teacher_checkpoint_with_seed(configured_path: str, seed_tag: str) -> Path:
+    """
+    Resolve teacher checkpoint; if a non-seeded path is configured but this run uses --seed,
+    also try inserting the seed tag (e.g. foo.pt -> foo_seed42.pt).
+    """
+    try:
+        return resolve_teacher_checkpoint(configured_path)
+    except FileNotFoundError:
+        if not seed_tag:
+            raise
+        p = Path(configured_path)
+        seeded = str(p.parent / f"{p.stem}{seed_tag}{p.suffix}")
+        return resolve_teacher_checkpoint(seeded)
+
+
 def load_config(path):
     with open(path, "r") as f:
         return yaml.safe_load(f)
@@ -291,7 +306,7 @@ def main():
             t_depth = int(t_cfg.get("depth", cfg["model"].get("teacher_depth", 56)))
             t_base_width = int(t_cfg.get("base_width", cfg["model"].get("base_width", 16)))
             teacher = ResNetCifar(depth=t_depth, num_classes=num_classes, base_width=t_base_width).to(device)
-        resolved_teacher = str(resolve_teacher_checkpoint(str(ckpt_path)))
+        resolved_teacher = str(_resolve_teacher_checkpoint_with_seed(str(ckpt_path), seed_tag))
         load_model_weights(teacher, resolved_teacher)
         teacher.eval()
         for p in teacher.parameters():

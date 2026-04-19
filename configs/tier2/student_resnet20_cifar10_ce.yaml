@@ -10,7 +10,7 @@ data:
   subset_test: null
 
 training:
-  epochs: 200
+  epochs: 50
   batch_size: 128
   optimizer: sgd
   lr: 0.1
@@ -20,9 +20,9 @@ training:
   seed: 42
   lr_schedule:
     name: multistep
-    milestones: [100, 150]
+    milestones: [25, 40]
     gamma: 0.1
-  log_csv: runs/tier2/metrics/tier2_student_resnet20_ce_metrics.csv
+  log_csv: runs_paper/tier2/metrics/tier2_student_resnet20_ce_metrics.csv
 
 model:
   name: resnet_cifar

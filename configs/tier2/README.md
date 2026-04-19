@@ -77,13 +77,13 @@ To avoid paying the 3× cost during iteration, use two phases:
 SEEDS="42" DEVICE=auto bash scripts/run_tier2_dev.sh
 ```
 
-### Paper runs (full, 3 seeds)
+### Paper runs (budget, 1 seed)
 
-- Purpose: statistically defensible comparisons: **mean ± std** and stable conclusions.
+- Purpose: a **single-seed parity** run you can afford; label it as preliminary (no mean±std).
 - Use full CIFAR-10 and the full Tier 2 epoch budget.
 - Example:
 
 ```bash
-SEEDS="41 42 43" DEVICE=auto bash scripts/run_tier2.sh
+SEEDS="42" DEVICE=auto bash scripts/run_tier2.sh
 ```
 

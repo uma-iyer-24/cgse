@@ -10,7 +10,7 @@ data:
   subset_test: null
 
 training:
-  epochs: 200
+  epochs: 50
   batch_size: 128
   optimizer: sgd
   lr: 0.1
@@ -20,9 +20,9 @@ training:
   seed: 42
   lr_schedule:
     name: multistep
-    milestones: [100, 150]
+    milestones: [25, 40]
     gamma: 0.1
-  log_csv: runs/tier2/metrics/tier2_student_resnet20_cgse_multiop_metrics.csv
+  log_csv: runs_paper/tier2/metrics/tier2_student_resnet20_cgse_multiop_metrics.csv
 
 model:
   name: resnet_cifar
@@ -39,13 +39,13 @@ mutation:
   enabled: true
   # For head-widen action, delta is taken from widen_delta.
   widen_delta: 64
-  log_jsonl: runs/tier2/mutations/tier2_student_resnet20_cgse_multiop_mutations.jsonl
+  log_jsonl: runs_paper/tier2/mutations/tier2_student_resnet20_cgse_multiop_mutations.jsonl
 
 critic:
   enabled: true
   # Decision epoch parity: choose exactly once at epoch 100.
-  window_start_epoch: 100
-  window_end_epoch: 100
+  window_start_epoch: 25
+  window_end_epoch: 25
   force_mutate_end_of_window: false
   epsilon: 0.25
   lr: 0.01
