@@ -21,6 +21,7 @@ from models.student import StudentNet
 from ops.edge_widen import edge_widen
 from ops.resnet_head_widen import widen_resnet_head
 from ops.resnet_insert_block import insert_resnet_block_layer3
+from ops.resnet_layer3_widen import widen_resnet_layer3
 from training.data import build_cifar10_loaders
 from training.loop import evaluate, train_one_epoch
 from training.synthetic import build_synthetic_loaders
@@ -182,6 +183,44 @@ def _run_resnet_insert_block_mutation(
                 "num_parameters_before": params_before,
                 "num_parameters_after": params_after,
                 "position": "end",
+                "layer": "layer3",
+            },
+        )
+    return optimizer
+
+
+def _run_resnet_layer3_widen_mutation(
+    model,
+    optimizer,
+    delta: int,
+    *,
+    mutation_log_jsonl: Path | None,
+    experiment_name: str,
+    run_ts: str,
+    epoch: int,
+    gate_tag: str,
+):
+    params_before = count_trainable_parameters(model)
+    widen_resnet_layer3(model, delta=int(delta))
+    optimizer = refresh_optimizer(optimizer, model)
+    params_after = count_trainable_parameters(model)
+    print(
+        f"[mutation] ({gate_tag}) Applied widen_resnet_layer3(delta={delta}) after epoch {epoch}; "
+        f"params {params_before} -> {params_after}; optimizer refreshed."
+    )
+    if mutation_log_jsonl:
+        append_mutation_jsonl(
+            mutation_log_jsonl,
+            {
+                "event": "mutation",
+                "op": "resnet_layer3_widen",
+                "gate": gate_tag,
+                "run_id": f"{experiment_name}_{run_ts}",
+                "experiment": experiment_name,
+                "epoch_completed": epoch,
+                "delta": int(delta),
+                "num_parameters_before": params_before,
+                "num_parameters_after": params_after,
                 "layer": "layer3",
             },
         )
@@ -518,6 +557,31 @@ def main():
                     epoch=epoch,
                     gate_tag="schedule",
                 )
+            elif mutation_op == "resnet_layer3_widen":
+                if model_name != "resnet_cifar":
+                    raise ValueError("mutation.op=resnet_layer3_widen requires model.name=resnet_cifar")
+                optimizer = _run_resnet_layer3_widen_mutation(
+                    model,
+                    optimizer,
+                    widen_delta,
+                    mutation_log_jsonl=mlog_path,
+                    experiment_name=experiment_name,
+                    run_ts=run_ts,
+                    epoch=epoch,
+                    gate_tag="schedule",
+                )
+            elif mutation_op == "resnet_insert_block":
+                if model_name != "resnet_cifar":
+                    raise ValueError("mutation.op=resnet_insert_block requires model.name=resnet_cifar")
+                optimizer = _run_resnet_insert_block_mutation(
+                    model,
+                    optimizer,
+                    mutation_log_jsonl=mlog_path,
+                    experiment_name=experiment_name,
+                    run_ts=run_ts,
+                    epoch=epoch,
+                    gate_tag="schedule",
+                )
             else:
                 raise ValueError(f"Unknown mutation.op '{mutation_op}'")
             mutation_applied = True
@@ -536,7 +600,11 @@ def main():
                 if model_name != "resnet_cifar":
                     legal = [a for a in legal if a in {"noop", "edge_widen"}]
                 else:
-                    legal = [a for a in legal if a in {"noop", "resnet_head_widen", "resnet_insert_block"}]
+                    legal = [
+                        a
+                        for a in legal
+                        if a in {"noop", "resnet_head_widen", "resnet_layer3_widen", "resnet_insert_block"}
+                    ]
                 if not legal:
                     raise ValueError("critic.actions produced no legal actions for this model")
 
@@ -572,6 +640,20 @@ def main():
                     if model_name != "resnet_cifar":
                         raise ValueError("resnet_head_widen requires model.name=resnet_cifar")
                     optimizer = _run_resnet_head_widen_mutation(
+                        model,
+                        optimizer,
+                        widen_delta,
+                        mutation_log_jsonl=mlog_path,
+                        experiment_name=experiment_name,
+                        run_ts=run_ts,
+                        epoch=epoch,
+                        gate_tag="critic",
+                    )
+                    mutation_applied = True
+                elif op == "resnet_layer3_widen":
+                    if model_name != "resnet_cifar":
+                        raise ValueError("resnet_layer3_widen requires model.name=resnet_cifar")
+                    optimizer = _run_resnet_layer3_widen_mutation(
                         model,
                         optimizer,
                         widen_delta,
@@ -648,6 +730,19 @@ def main():
                         optimizer = _run_resnet_insert_block_mutation(
                             model,
                             optimizer,
+                            mutation_log_jsonl=mlog_path,
+                            experiment_name=experiment_name,
+                            run_ts=run_ts,
+                            epoch=epoch,
+                            gate_tag="critic",
+                        )
+                    elif mutation_op == "resnet_layer3_widen":
+                        if model_name != "resnet_cifar":
+                            raise ValueError("mutation.op=resnet_layer3_widen requires model.name=resnet_cifar")
+                        optimizer = _run_resnet_layer3_widen_mutation(
+                            model,
+                            optimizer,
+                            widen_delta,
                             mutation_log_jsonl=mlog_path,
                             experiment_name=experiment_name,
                             run_ts=run_ts,

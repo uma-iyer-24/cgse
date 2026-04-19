@@ -24,6 +24,7 @@ for s in $SEEDS; do
   run_one configs/tier2/student_resnet20_cifar10_kd.yaml student_kd "$s"
   run_one configs/tier2/student_resnet20_cifar10_sched_headwiden.yaml student_sched_headwiden "$s"
   run_one configs/tier2/student_resnet20_cifar10_cgse_headwiden.yaml student_cgse_headwiden "$s"
+  run_one configs/tier2/student_resnet20_cifar10_sched_layer3widen.yaml student_sched_layer3widen "$s"
   run_one configs/tier2/student_resnet20_cifar10_cgse_multiop.yaml student_cgse_multiop "$s"
 done
 

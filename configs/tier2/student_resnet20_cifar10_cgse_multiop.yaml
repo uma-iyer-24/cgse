@@ -52,5 +52,5 @@ critic:
   hidden_dim: 64
   weight_decay: 0.0
   # Discrete action set for Tier 2 multi-op CGSE:
-  actions: [noop, resnet_head_widen, resnet_insert_block]
+  actions: [noop, resnet_head_widen, resnet_layer3_widen, resnet_insert_block]
 

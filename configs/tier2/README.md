@@ -53,6 +53,7 @@ This is a discrete action variant where the critic chooses one action at the dec
 
 - `noop`
 - `resnet_head_widen` (Net2Net head widen)
+- `resnet_layer3_widen` (widen conv channels in `layer3`, function-preserving init)
 - `resnet_insert_block` (deepen by inserting a residual block into `layer3`)
 
 ```bash
