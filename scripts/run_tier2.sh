@@ -19,7 +19,7 @@ run_one() {
     return 0
   fi
   echo "=== tier2 ${tag} seed=${s} -> ${log} ==="
-  python train.py --config "$cfg" --device "$DEVICE" --seed "$s" 2>&1 | tee "$log"
+  PYTHONUNBUFFERED=1 python train.py --config "$cfg" --device "$DEVICE" --seed "$s" 2>&1 | tee "$log"
 }
 
 mkdir -p runs_paper/tier2/logs checkpoints/tier2
