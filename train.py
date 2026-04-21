@@ -376,8 +376,11 @@ def main():
     if critic_on:
         if not mutation_enabled:
             raise ValueError("critic.enabled requires mutation.enabled")
-        if teacher is not None:
-            raise ValueError("Disable teacher when critic.enabled (CGSE arm uses no KD teacher).")
+        if teacher is not None and not bool(c_cfg.get("allow_teacher_kd", False)):
+            raise ValueError(
+                "critic.enabled with teacher.enabled is disabled by default. "
+                "Set critic.allow_teacher_kd: true to run the hybrid (budgeted KD + CGSE)."
+            )
 
     critic = None
     critic_opt = None
@@ -457,6 +460,9 @@ def main():
 
     kd_temp = float(t_cfg.get("temperature", 4.0))
     kd_alpha = float(t_cfg.get("alpha", 0.5))
+    kd_every = int(t_cfg.get("kd_every_n_steps", 1))
+    kd_max_teacher_forwards = t_cfg.get("max_teacher_forwards")
+    kd_max_teacher_forwards = int(kd_max_teacher_forwards) if kd_max_teacher_forwards not in (None, "") else None
 
     pending_pg = None
     prev_train_loss = None
@@ -476,6 +482,9 @@ def main():
             teacher=teacher,
             kd_temperature=kd_temp,
             kd_alpha=kd_alpha,
+            kd_teacher_every_n_steps=kd_every,
+            kd_max_teacher_forwards=kd_max_teacher_forwards,
+            teacher_forwards_so_far=cum_teacher_forwards,
             return_stats=True,
         )
         val_loss, val_acc = evaluate(model, device, test_loader)

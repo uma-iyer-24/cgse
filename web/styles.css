@@ -58,7 +58,7 @@ header .tagline {
 }
 
 main {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
 }
@@ -113,6 +113,14 @@ table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+}
+
+/* Give wide result tables more room before wrapping. */
+@media (min-width: 960px) {
+  th,
+  td {
+    white-space: nowrap;
+  }
 }
 
 th,

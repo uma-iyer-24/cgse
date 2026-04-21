@@ -1,0 +1,65 @@
+# Tier 2: hybrid — CGSE multi-op + budgeted KD (use fewer teacher forwards than full KD).
+experiment:
+  name: tier2_student_resnet20_cifar10_cgse_multiop_kd_budgeted
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: multistep
+    milestones: [25, 40]
+    gamma: 0.1
+  log_csv: runs_paper/tier2/metrics/tier2_student_resnet20_cgse_multiop_kd_budgeted_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+  teacher_depth: 56
+
+device: auto
+
+teacher:
+  enabled: true
+  checkpoint: checkpoints/tier2/tier2_teacher_resnet56_cifar10.pt
+  depth: 56
+  base_width: 16
+  temperature: 4.0
+  alpha: 0.5
+  kd_every_n_steps: 4
+  max_teacher_forwards: 5000
+
+mutation:
+  enabled: true
+  op: resnet_head_widen
+  once_after_epoch: 25
+  # used for layer3 widen op
+  widen_delta: 16
+  # used for head widen op
+  hidden_delta: 64
+
+critic:
+  enabled: true
+  allow_teacher_kd: true
+  actions: [noop, resnet_head_widen, resnet_layer3_widen, resnet_insert_block]
+  window_start_epoch: 25
+  window_end_epoch: 25
+  epsilon: 0.25
+  force_mutate_end_of_window: true
+  lr: 0.005
+  hidden_dim: 64
+

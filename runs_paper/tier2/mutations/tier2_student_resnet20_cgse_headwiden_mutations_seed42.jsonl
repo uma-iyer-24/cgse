@@ -1,0 +1,1 @@
+{"delta": 64, "epoch_completed": 25, "event": "mutation", "experiment": "tier2_student_resnet20_cifar10_cgse_headwiden_seed42", "gate": "critic", "logged_at_utc": "2026-04-19T23:00:48+00:00", "num_parameters_after": 281434, "num_parameters_before": 272474, "op": "resnet_head_widen", "run_id": "tier2_student_resnet20_cifar10_cgse_headwiden_seed42_20260419T223610Z"}

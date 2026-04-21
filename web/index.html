@@ -37,7 +37,7 @@
       </section>
 
       <section id="tier1-summary">
-        <h2>Tier 1 — five-arm grid (CIFAR-10)</h2>
+        <h2>Test 1: Accuracy Metrics (CIFAR-10)</h2>
         <p class="note" id="tier1-meta"></p>
         <div class="table-wrap">
           <table id="tier1-table">
@@ -46,7 +46,6 @@
                 <th>Arm</th>
                 <th>Best val acc (mean ± std)</th>
                 <th>Final val acc (mean ± std)</th>
-                <th>Seeds</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -64,40 +63,18 @@
         </div>
       </section>
 
-      <section id="tier1b">
-        <h2>Tier 1b — schedule vs critic</h2>
-        <p class="note" id="tier1b-status"></p>
-        <p class="note" id="tier1b-meta" style="border-left-color: var(--accent2)"></p>
-        <div class="table-wrap" id="tier1b-table-wrap" style="margin-top: 1rem">
-          <table id="tier1b-table">
-            <thead>
-              <tr>
-                <th>Arm</th>
-                <th>Complete seeds</th>
-                <th>Mean best val acc</th>
-                <th>Mean final val acc</th>
-                <th>Incomplete seeds</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="chart-box">
-          <canvas id="chart-tier1b" aria-label="Tier 1b validation accuracy"></canvas>
-        </div>
-      </section>
-
-      <section id="tier2dev">
-        <h2>Tier 2 dev — parity sanity-check (small subset)</h2>
-        <p class="note" id="tier2dev-meta"></p>
-        <div class="table-wrap" id="tier2dev-table-wrap" style="margin-top: 1rem">
-          <table id="tier2dev-table">
+      <section id="tier2paper">
+        <h2>Test 2: Training and Cost Efficiency Metrics (CIFAR-10)</h2>
+        <p class="note" id="tier2paper-meta"></p>
+        <div class="table-wrap" id="tier2paper-table-wrap" style="margin-top: 1rem">
+          <table id="tier2paper-table">
             <thead>
               <tr>
                 <th>Row</th>
-                <th>Seed</th>
                 <th>Best val acc</th>
                 <th>Final val acc</th>
+                <th>Best acc / hour</th>
+                <th>Params</th>
                 <th>Teacher forwards</th>
                 <th>Wall seconds</th>
               </tr>
@@ -105,9 +82,20 @@
             <tbody></tbody>
           </table>
         </div>
+        <div class="chart-box">
+          <canvas id="chart-tier2-bar" aria-label="Tier 2 best validation accuracy by row"></canvas>
+        </div>
+        <div class="controls">
+          <label for="tier2-row-select">Learning curves — row:</label>
+          <select id="tier2-row-select"></select>
+        </div>
+        <div class="chart-box">
+          <canvas id="chart-tier2-lines" aria-label="Tier 2 validation accuracy over epochs"></canvas>
+        </div>
         <div class="note">
-          <b>What this is:</b> a quick correctness check (subset CIFAR, few epochs). Use it to verify
-          KD wiring, mutation triggers, and the efficiency metrics logging — not for paper claims.
+          <b>Notes:</b> These are the “paper-ish” Tier 2 runs (full CIFAR-10, SGD schedule). They are
+          still <b>not</b> a full SEArch reproduction (different operator space; no long retrain), but
+          they are the closest apples-to-apples teacher/KD vs teacher-free CGSE comparison in this repo.
         </div>
       </section>
 
@@ -159,7 +147,7 @@
       </section>
 
       <section id="cgse-vs-search">
-        <h2>How CGSE can be better than SEArch (legitimate claims)</h2>
+        <h2>Where CGSE beats Existing Systems</h2>
         <div class="note">
           <ul style="margin: 0; padding-left: 1.25rem">
             <li><b>Teacher-free evolution:</b> CGSE can run with <span class="mono">teacher_forwards = 0</span> while still evolving structure.</li>
@@ -203,13 +191,20 @@
         const arms = data.tier1.arms;
         const pct = (x) => (100 * x).toFixed(2) + "%";
         const pm = (m, s) => pct(m) + " ± " + (100 * s).toFixed(2) + "pp";
+        const accPerHour = (bestAcc, wallSeconds) => {
+          const ws = Number(wallSeconds || 0);
+          if (!ws || ws <= 0) return "—";
+          const hours = ws / 3600;
+          return (100 * Number(bestAcc) / hours).toFixed(2) + "%/h";
+        };
+        const aucPerHour = (aucValAccPerHour) => {
+          const v = Number(aucValAccPerHour || 0);
+          if (!v || v <= 0) return "—";
+          return (100 * v).toFixed(2) + "%·h/h";
+        };
 
         document.getElementById("tier1-meta").textContent =
-          "Full CIFAR-10, matched training hyperparameters across arms. " +
-          arms.length +
-          " arms × " +
-          (arms[0]?.seeds?.length || 0) +
-          " seeds (41–43). Val acc = test-set accuracy in our logs.";
+          "Full CIFAR-10, matched training hyperparameters across arms. Val acc = test-set accuracy in our logs.";
 
         const tbody = document.querySelector("#tier1-table tbody");
         arms.forEach((a) => {
@@ -221,8 +216,6 @@
             pm(a.best_val_acc_mean, a.best_val_acc_std) +
             "</td><td>" +
             pm(a.final_val_acc_mean, a.final_val_acc_std) +
-            "</td><td>" +
-            a.seeds.join(", ") +
             "</td>";
           tbody.appendChild(tr);
         });
@@ -236,6 +229,8 @@
               {
                 label: "Mean best val acc",
                 data: arms.map((a) => 100 * a.best_val_acc_mean),
+                barThickness: 18,
+                maxBarThickness: 22,
                 backgroundColor: arms.map((_, i) =>
                   ["#5b9fd4", "#7c6cf0", "#3ecf8e", "#e8a849", "#e86f9a"][i % 5]
                 ),
@@ -247,7 +242,7 @@
             responsive: true,
             plugins: {
               legend: { display: false },
-              title: { display: true, text: "Tier 1 — mean best validation accuracy (%)" },
+              title: { display: true, text: "Test 1 — mean best validation accuracy (%)" },
             },
             scales: {
               y: {
@@ -324,113 +319,128 @@
         sel.addEventListener("change", () => renderLines(sel.value));
         renderLines("0");
 
-        const t1b = data.tier1b || {};
-        const t1bStatusEl = document.getElementById("tier1b-status");
-        const t1bNote = document.getElementById("tier1b-meta");
-        const t1bCanvas = document.getElementById("chart-tier1b");
-        const t1bTbody = document.querySelector("#tier1b-table tbody");
+        // --- Tier 2 paper (Tier 1-style visuals: bar + learning curve) ---
+        const t2p = data.tier2paper || {};
+        const t2pMeta = document.getElementById("tier2paper-meta");
+        const t2pTbody = document.querySelector("#tier2paper-table tbody");
+        const t2BarCtx = document.getElementById("chart-tier2-bar");
+        const t2LineCtx = document.getElementById("chart-tier2-lines");
+        const t2RowSel = document.getElementById("tier2-row-select");
 
-        t1bStatusEl.textContent = data.tier1b_status || "";
-
-        const sched = t1b.schedule;
-        const crit = t1b.critic;
-        if (!sched && !crit) {
-          t1bNote.textContent =
-            "No Tier 1b CSVs under runs/tier1b/metrics/. Run: bash scripts/run_tier1b.sh";
-          document.getElementById("tier1b-table-wrap").style.display = "none";
-          t1bCanvas.parentElement.style.display = "none";
+        if (!t2p.rows || t2p.rows.length === 0) {
+          t2pMeta.textContent =
+            "No Tier 2 paper metrics found under runs_paper/tier2/metrics/. Run: bash scripts/run_tier2.sh";
+          document.getElementById("tier2paper-table-wrap").style.display = "none";
         } else {
-          t1bNote.textContent =
-            "Multi-stage evolution: 50 epochs (5×10), same candidate ops. Aggregates use only runs with 50 epoch rows; partial CSVs are listed as incomplete. Re-run build after sweeps finish.";
+          t2pMeta.textContent =
+            "Full CIFAR-10 Tier 2 parity track. Table + bar chart show best/final; curve shows val acc by epoch.";
 
-          function rowArm(arm) {
-            const agg = arm.aggregate;
-            const inc = arm.seeds_incomplete.length ? arm.seeds_incomplete.join(", ") : "—";
-            const comp = arm.seeds_complete.length ? arm.seeds_complete.join(", ") : "—";
-            const tr = document.createElement("tr");
-            if (agg) {
-              tr.innerHTML =
-                "<td>" +
-                arm.label +
-                "</td><td>" +
-                comp +
-                "</td><td>" +
-                pm(agg.best_val_acc_mean, agg.best_val_acc_std) +
-                "</td><td>" +
-                pm(agg.final_val_acc_mean, agg.final_val_acc_std) +
-                "</td><td>" +
-                inc +
-                "</td>";
-            } else {
-              tr.innerHTML =
-                "<td>" +
-                arm.label +
-                "</td><td>—</td><td>—</td><td>—</td><td>" +
-                (arm.seeds_all.join(", ") || "—") +
-                " (all partial)</td>";
-            }
-            t1bTbody.appendChild(tr);
-          }
-          if (sched) rowArm(sched);
-          else {
+          const keep = new Set([
+            "Teacher (ResNet-56)",
+            "Student KD (ResNet-20)",
+            "CGSE multi-op (ResNet-20)",
+          ]);
+          const tier2Rows = t2p.rows.filter((r) => keep.has(r.label));
+
+          // Table
+          tier2Rows.forEach((r) => {
+            const s = String(r.default_seed);
+            const one = r.per_seed[s];
             const tr = document.createElement("tr");
             tr.innerHTML =
-              "<td>Fixed schedule</td><td colspan='4'>No CSVs in runs/tier1b/metrics/</td>";
-            t1bTbody.appendChild(tr);
-          }
-          if (crit) rowArm(crit);
-          else {
-            const tr = document.createElement("tr");
-            tr.innerHTML =
-              "<td>Discrete critic</td><td colspan='4'>No CSVs in runs/tier1b/metrics/</td>";
-            t1bTbody.appendChild(tr);
-          }
+              "<td>" +
+              r.label +
+              "</td><td>" +
+              pct(one.best_val_acc) +
+              "</td><td>" +
+              pct(one.final_val_acc) +
+              "</td><td>" +
+              accPerHour(one.best_val_acc, one.wall_seconds) +
+              "</td><td class='mono'>" +
+              (one.final_params ?? "—") +
+              "</td><td>" +
+              (one.teacher_forwards ?? 0) +
+              "</td><td>" +
+              (one.wall_seconds ? one.wall_seconds.toFixed(1) : "—") +
+              "</td>";
+            t2pTbody.appendChild(tr);
+          });
 
-          const completeS = sched ? sched.seeds_complete : [];
-          const completeC = crit ? crit.seeds_complete : [];
-          const common = completeS.filter((s) => completeC.includes(s));
-          const pick = common.length ? String(common[0]) : null;
+          // Bar chart (best val acc for default seed)
+          new Chart(t2BarCtx, {
+            type: "bar",
+            data: {
+              labels: tier2Rows.map((r) => r.label),
+              datasets: [
+                {
+                  label: "Best val acc",
+                  data: tier2Rows.map((r) => {
+                    const s = String(r.default_seed);
+                    return 100 * (r.per_seed[s]?.best_val_acc ?? 0);
+                  }),
+                  barThickness: 18,
+                  maxBarThickness: 22,
+                  backgroundColor: tier2Rows.map((_, i) =>
+                    ["#5b9fd4", "#e8a849", "#3ecf8e"][i % 3]
+                  ),
+                  borderWidth: 0,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { display: false },
+                title: { display: true, text: "Test 2 — best validation accuracy (%)" },
+              },
+              scales: {
+                y: {
+                  beginAtZero: false,
+                  min: 50,
+                  max: 100,
+                  grid: { color: "rgba(255,255,255,0.06)" },
+                  ticks: { color: "#8b9cb3" },
+                },
+                x: { ticks: { color: "#8b9cb3", maxRotation: 30, minRotation: 30 } },
+              },
+            },
+          });
 
-          const ds = [];
-          if (pick && sched.complete[pick] && crit.complete[pick]) {
-            ds.push({
-              label: "Schedule (seed " + pick + ")",
-              data: sched.complete[pick].curve.map((p) => ({
-                x: p.epoch,
-                y: 100 * p.val_acc,
-              })),
-              borderColor: "#5b9fd4",
-              tension: 0.15,
-              pointRadius: 0,
-              borderWidth: 2,
-            });
-            ds.push({
-              label: "Critic (seed " + pick + ")",
-              data: crit.complete[pick].curve.map((p) => ({
-                x: p.epoch,
-                y: 100 * p.val_acc,
-              })),
-              borderColor: "#e86f9a",
-              tension: 0.15,
-              pointRadius: 0,
-              borderWidth: 2,
-            });
-          }
+          // Curve (val acc vs epoch)
+          tier2Rows.forEach((r, i) => {
+            const o = document.createElement("option");
+            o.value = String(i);
+            o.textContent = r.label;
+            t2RowSel.appendChild(o);
+          });
 
-          if (ds.length === 0) {
-            t1bCanvas.parentElement.style.display = "none";
-          } else {
-            new Chart(t1bCanvas, {
+          let tier2LineChart = null;
+          function renderTier2Curve(rowIdx) {
+            const r = tier2Rows[Number(rowIdx)];
+            const seed = String(r.default_seed);
+            const one = r.per_seed[seed];
+            const c = (one?.curve || []).slice();
+            if (tier2LineChart) tier2LineChart.destroy();
+            tier2LineChart = new Chart(t2LineCtx, {
               type: "line",
-              data: { datasets: ds },
+              data: {
+                datasets: [
+                  {
+                    label: r.label + " (seed " + seed + ")",
+                    data: c.map((p) => ({ x: p.epoch, y: 100 * p.val_acc })),
+                    borderColor: "#5b9fd4",
+                    backgroundColor: "transparent",
+                    tension: 0.15,
+                    pointRadius: 0,
+                    borderWidth: 2,
+                  },
+                ],
+              },
               options: {
                 responsive: true,
                 parsing: false,
                 plugins: {
-                  title: {
-                    display: true,
-                    text: "Tier 1b — val accuracy (%) — seed " + pick + " (both arms complete)",
-                  },
+                  title: { display: true, text: "Test 2 — val accuracy (%) over epochs" },
                   legend: { labels: { color: "#8b9cb3" } },
                 },
                 scales: {
@@ -443,6 +453,7 @@
                   y: {
                     min: 50,
                     max: 100,
+                    title: { display: true, text: "Val acc %", color: "#8b9cb3" },
                     grid: { color: "rgba(255,255,255,0.06)" },
                     ticks: { color: "#8b9cb3" },
                   },
@@ -450,39 +461,12 @@
               },
             });
           }
-        }
 
-        // --- Tier 2 dev table ---
-        const t2 = data.tier2dev || {};
-        const t2Meta = document.getElementById("tier2dev-meta");
-        const t2Tbody = document.querySelector("#tier2dev-table tbody");
-        if (!t2.rows || t2.rows.length === 0) {
-          t2Meta.textContent =
-            "No Tier 2 dev metrics found under runs/tier2/metrics/. Run: bash scripts/run_tier2_dev.sh";
-          document.getElementById("tier2dev-table-wrap").style.display = "none";
-        } else {
-          t2Meta.textContent =
-            "DEV runs (subset CIFAR, few epochs). Shows efficiency fields like teacher_forwards and wall_seconds.";
-          t2.rows.forEach((r) => {
-            const s = String(r.default_seed);
-            const one = r.per_seed[s];
-            const tr = document.createElement("tr");
-            tr.innerHTML =
-              "<td>" +
-              r.label +
-              "</td><td>" +
-              s +
-              "</td><td>" +
-              pct(one.best_val_acc) +
-              "</td><td>" +
-              pct(one.final_val_acc) +
-              "</td><td>" +
-              (one.teacher_forwards ?? 0) +
-              "</td><td>" +
-              (one.wall_seconds ? one.wall_seconds.toFixed(1) : "—") +
-              "</td>";
-            t2Tbody.appendChild(tr);
+          t2RowSel.addEventListener("change", () => {
+            renderTier2Curve(t2RowSel.value);
           });
+
+          renderTier2Curve("0");
         }
       })();
     </script>

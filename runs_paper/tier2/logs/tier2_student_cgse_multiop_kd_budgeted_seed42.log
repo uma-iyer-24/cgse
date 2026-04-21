@@ -1,0 +1,56 @@
+[repro] Using --seed 42; experiment_name=tier2_student_resnet20_cifar10_cgse_multiop_kd_budgeted_seed42
+[teacher] Loaded frozen teacher from checkpoints/tier2/tier2_teacher_resnet56_cifar10_seed42.pt (KD training).
+[critic] CGSE mutation gating: window [25, 25], ε=0.25, force_end=True
+Epoch 000 | train_loss 2.4910 | train_acc 0.4371 | val_loss 1.7262 | val_acc 0.5107 | kd T=4.0 α=0.5 | critic -0.1907
+Epoch 001 | train_loss 1.6607 | train_acc 0.6388 | val_loss 1.2743 | val_acc 0.6194 | kd T=4.0 α=0.5 | critic -0.2513
+Epoch 002 | train_loss 1.3503 | train_acc 0.7120 | val_loss 0.9869 | val_acc 0.6869 | kd T=4.0 α=0.5 | critic -0.2208
+Epoch 003 | train_loss 1.1819 | train_acc 0.7486 | val_loss 1.0775 | val_acc 0.6842 | kd T=4.0 α=0.5 | critic -0.1667
+Epoch 004 | train_loss 1.0854 | train_acc 0.7670 | val_loss 1.2759 | val_acc 0.6613 | kd T=4.0 α=0.5 | critic -0.1510
+Epoch 005 | train_loss 1.0205 | train_acc 0.7822 | val_loss 0.9644 | val_acc 0.7295 | kd T=4.0 α=0.5 | critic -0.2065
+Epoch 006 | train_loss 0.9768 | train_acc 0.7917 | val_loss 0.8136 | val_acc 0.7633 | kd T=4.0 α=0.5 | critic -0.1834
+Epoch 007 | train_loss 0.9289 | train_acc 0.7999 | val_loss 0.7439 | val_acc 0.7733 | kd T=4.0 α=0.5 | critic -0.1640
+Epoch 008 | train_loss 0.8990 | train_acc 0.8073 | val_loss 0.6715 | val_acc 0.7882 | kd T=4.0 α=0.5 | critic -0.1644
+Epoch 009 | train_loss 0.8579 | train_acc 0.8152 | val_loss 0.9329 | val_acc 0.7577 | kd T=4.0 α=0.5 | critic -0.1301
+Epoch 010 | train_loss 0.8454 | train_acc 0.8185 | val_loss 1.2412 | val_acc 0.6970 | kd T=4.0 α=0.5 | critic -0.1099
+Epoch 011 | train_loss 0.8280 | train_acc 0.8199 | val_loss 0.6827 | val_acc 0.7947 | kd T=4.0 α=0.5 | critic -0.1934
+Epoch 012 | train_loss 0.8108 | train_acc 0.8256 | val_loss 0.9399 | val_acc 0.7525 | kd T=4.0 α=0.5 | critic -0.1157
+Epoch 013 | train_loss 0.7925 | train_acc 0.8293 | val_loss 0.7072 | val_acc 0.7831 | kd T=4.0 α=0.5 | critic -0.1620
+Epoch 014 | train_loss 0.8037 | train_acc 0.8287 | val_loss 1.0972 | val_acc 0.7075 | kd T=4.0 α=0.5 | critic -0.0910
+Epoch 015 | train_loss 0.7798 | train_acc 0.8319 | val_loss 0.7388 | val_acc 0.7869 | kd T=4.0 α=0.5 | critic -0.1775
+Epoch 016 | train_loss 0.7565 | train_acc 0.8351 | val_loss 0.8707 | val_acc 0.7602 | kd T=4.0 α=0.5 | critic -0.1195
+Epoch 017 | train_loss 0.7519 | train_acc 0.8366 | val_loss 0.8311 | val_acc 0.7659 | kd T=4.0 α=0.5 | critic -0.1411
+Epoch 018 | train_loss 0.7486 | train_acc 0.8390 | val_loss 0.5922 | val_acc 0.8146 | kd T=4.0 α=0.5 | critic -0.1526
+Epoch 019 | train_loss 0.7399 | train_acc 0.8393 | val_loss 0.6424 | val_acc 0.8088 | kd T=4.0 α=0.5 | critic -0.1255
+Epoch 020 | train_loss 0.7374 | train_acc 0.8416 | val_loss 0.6758 | val_acc 0.7931 | kd T=4.0 α=0.5 | critic -0.1176
+Epoch 021 | train_loss 0.7211 | train_acc 0.8449 | val_loss 0.8440 | val_acc 0.7710 | kd T=4.0 α=0.5 | critic -0.1127
+Epoch 022 | train_loss 0.7305 | train_acc 0.8419 | val_loss 0.6417 | val_acc 0.8094 | kd T=4.0 α=0.5 | critic -0.1385
+Epoch 023 | train_loss 0.7114 | train_acc 0.8463 | val_loss 0.8182 | val_acc 0.7639 | kd T=4.0 α=0.5 | critic -0.0910
+Epoch 024 | train_loss 0.7105 | train_acc 0.8470 | val_loss 0.8011 | val_acc 0.7891 | kd T=4.0 α=0.5 | critic -0.1311
+[mutation] (critic) Applied widen_resnet_head(delta=16) after epoch 25; params 272474 -> 277834; optimizer refreshed.
+Epoch 025 | train_loss 0.4703 | train_acc 0.8955 | val_loss 0.3702 | val_acc 0.8849 | mutation=on | kd T=4.0 α=0.5 | critic -0.1411
+Epoch 026 | train_loss 0.7913 | train_acc 0.8325 | val_loss 0.9736 | val_acc 0.7410 | mutation=on | kd T=4.0 α=0.5 | critic -0.0406
+Epoch 027 | train_loss 0.7528 | train_acc 0.8395 | val_loss 1.2228 | val_acc 0.7100 | mutation=on | kd T=4.0 α=0.5 | critic -0.0994
+Epoch 028 | train_loss 0.7358 | train_acc 0.8433 | val_loss 0.9171 | val_acc 0.7439 | mutation=on | kd T=4.0 α=0.5 | critic -0.1294
+Epoch 029 | train_loss 0.7242 | train_acc 0.8429 | val_loss 1.1094 | val_acc 0.7299 | mutation=on | kd T=4.0 α=0.5 | critic -0.1066
+Epoch 030 | train_loss 0.7351 | train_acc 0.8425 | val_loss 0.8627 | val_acc 0.7713 | mutation=on | kd T=4.0 α=0.5 | critic -0.1224
+Epoch 031 | train_loss 0.7253 | train_acc 0.8446 | val_loss 0.8620 | val_acc 0.7646 | mutation=on | kd T=4.0 α=0.5 | critic -0.1025
+Epoch 032 | train_loss 0.7096 | train_acc 0.8472 | val_loss 1.5331 | val_acc 0.6828 | mutation=on | kd T=4.0 α=0.5 | critic -0.0581
+Epoch 033 | train_loss 0.7132 | train_acc 0.8455 | val_loss 0.7787 | val_acc 0.7997 | mutation=on | kd T=4.0 α=0.5 | critic -0.1384
+Epoch 034 | train_loss 0.6968 | train_acc 0.8497 | val_loss 0.6935 | val_acc 0.7947 | mutation=on | kd T=4.0 α=0.5 | critic -0.0911
+Epoch 035 | train_loss 0.7038 | train_acc 0.8483 | val_loss 0.6839 | val_acc 0.8063 | mutation=on | kd T=4.0 α=0.5 | critic -0.0924
+Epoch 036 | train_loss 0.6942 | train_acc 0.8512 | val_loss 0.5788 | val_acc 0.8285 | mutation=on | kd T=4.0 α=0.5 | critic -0.0914
+Epoch 037 | train_loss 0.6966 | train_acc 0.8493 | val_loss 0.7320 | val_acc 0.7989 | mutation=on | kd T=4.0 α=0.5 | critic -0.0720
+Epoch 038 | train_loss 0.6948 | train_acc 0.8508 | val_loss 0.8825 | val_acc 0.7689 | mutation=on | kd T=4.0 α=0.5 | critic -0.0737
+Epoch 039 | train_loss 0.7025 | train_acc 0.8481 | val_loss 0.7179 | val_acc 0.7921 | mutation=on | kd T=4.0 α=0.5 | critic -0.0895
+Epoch 040 | train_loss 0.6906 | train_acc 0.8520 | val_loss 0.7682 | val_acc 0.7977 | mutation=on | kd T=4.0 α=0.5 | critic -0.0808
+Epoch 041 | train_loss 0.6941 | train_acc 0.8506 | val_loss 0.8913 | val_acc 0.7542 | mutation=on | kd T=4.0 α=0.5 | critic -0.0646
+Epoch 042 | train_loss 0.6757 | train_acc 0.8537 | val_loss 0.8106 | val_acc 0.7751 | mutation=on | kd T=4.0 α=0.5 | critic -0.0869
+Epoch 043 | train_loss 0.6810 | train_acc 0.8526 | val_loss 0.9039 | val_acc 0.7571 | mutation=on | kd T=4.0 α=0.5 | critic -0.0715
+Epoch 044 | train_loss 0.6703 | train_acc 0.8529 | val_loss 1.3759 | val_acc 0.6777 | mutation=on | kd T=4.0 α=0.5 | critic -0.0498
+Epoch 045 | train_loss 0.6817 | train_acc 0.8525 | val_loss 0.5805 | val_acc 0.8289 | mutation=on | kd T=4.0 α=0.5 | critic -0.1204
+Epoch 046 | train_loss 0.6832 | train_acc 0.8522 | val_loss 0.6212 | val_acc 0.8245 | mutation=on | kd T=4.0 α=0.5 | critic -0.0654
+Epoch 047 | train_loss 0.6782 | train_acc 0.8534 | val_loss 0.7622 | val_acc 0.7950 | mutation=on | kd T=4.0 α=0.5 | critic -0.0608
+Epoch 048 | train_loss 0.6772 | train_acc 0.8538 | val_loss 0.8106 | val_acc 0.7852 | mutation=on | kd T=4.0 α=0.5 | critic -0.0667
+Epoch 049 | train_loss 0.6738 | train_acc 0.8550 | val_loss 0.7914 | val_acc 0.7818 | mutation=on | kd T=4.0 α=0.5 | critic -0.0679
+Saved checkpoint to checkpoints/tier2/tier2_student_resnet20_cifar10_cgse_multiop_kd_budgeted_seed42.pt
+Saved critic weights to checkpoints/tier2/tier2_student_resnet20_cifar10_cgse_multiop_kd_budgeted_seed42_critic.pt

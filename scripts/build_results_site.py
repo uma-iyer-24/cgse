@@ -22,6 +22,7 @@ ASSETS = WEB / "assets" / "figures"
 TIER1 = ROOT / "runs" / "tier1" / "metrics"
 TIER1B = ROOT / "runs" / "tier1b" / "metrics"
 TIER2 = ROOT / "runs" / "tier2" / "metrics"
+TIER2_PAPER = ROOT / "runs_paper" / "tier2" / "metrics"
 FIG_SRC = ROOT / "paper_documentation" / "figures"
 
 # Tier 1b full runs: epochs 0..49 → 50 rows
@@ -43,6 +44,18 @@ TIER2DEV_ROWS = [
     ("tier2dev_student_resnet20_cgse_multiop_metrics", "CGSE multi-op (ResNet-20)"),
 ]
 
+TIER2_PAPER_ROWS = [
+    ("tier2_teacher_resnet56_metrics", "Teacher (ResNet-56)"),
+    ("tier2_student_resnet20_ce_metrics", "Student CE (ResNet-20)"),
+    ("tier2_student_resnet20_kd_metrics", "Student KD (ResNet-20)"),
+    ("tier2_student_resnet20_kd_budgeted_metrics", "Student KD (budgeted teacher) (ResNet-20)"),
+    ("tier2_student_resnet20_sched_headwiden_metrics", "Scheduled head widen (ResNet-20)"),
+    ("tier2_student_resnet20_cgse_headwiden_metrics", "CGSE head widen (ResNet-20)"),
+    ("tier2_student_resnet20_sched_layer3widen_metrics", "Scheduled layer3 widen (ResNet-20)"),
+    ("tier2_student_resnet20_cgse_multiop_metrics", "CGSE multi-op (ResNet-20)"),
+    ("tier2_student_resnet20_cgse_multiop_kd_budgeted_metrics", "CGSE multi-op + budgeted KD (ResNet-20)"),
+]
+
 
 def _read_csv(path: Path) -> list[dict]:
     with path.open(newline="", encoding="utf-8") as f:
@@ -54,7 +67,6 @@ def _summarize_rows(rows: list[dict]) -> dict:
         return {}
     val_accs = [float(r["val_acc"]) for r in rows]
     train_accs = [float(r["train_acc"]) for r in rows]
-    epochs = [int(r["epoch"]) for r in rows]
     params = int(float(rows[-1]["num_parameters"]))
     last = rows[-1]
     def _f(key: str, default: float = 0.0) -> float:
@@ -71,6 +83,34 @@ def _summarize_rows(rows: list[dict]) -> dict:
         except Exception:
             return 0
 
+    wall_seconds = _f("wall_seconds", 0.0)
+    # AUC over wall-time: trapezoid integral of val_acc(t) vs t, normalized by hours.
+    # This gives "average val_acc over time" (and is robust when runs have different speeds).
+    auc_val_acc_seconds = 0.0
+    try:
+        times = [float(r.get("wall_seconds") or 0.0) for r in rows]
+        # If wall_seconds isn't present/monotonic, this will just yield 0.
+        for i in range(1, len(times)):
+            t0, t1 = times[i - 1], times[i]
+            if t1 <= t0:
+                continue
+            a0, a1 = val_accs[i - 1], val_accs[i]
+            auc_val_acc_seconds += 0.5 * (a0 + a1) * (t1 - t0)
+    except Exception:
+        auc_val_acc_seconds = 0.0
+    auc_val_acc_per_hour = auc_val_acc_seconds / 3600.0 if auc_val_acc_seconds > 0 else 0.0
+
+    # Time-to-threshold: first wall_seconds where val_acc >= threshold.
+    def _time_to_acc(threshold: float) -> float:
+        try:
+            for r in rows:
+                if float(r["val_acc"]) >= threshold:
+                    ws = r.get("wall_seconds")
+                    return float(ws) if ws not in ("", None) else 0.0
+        except Exception:
+            pass
+        return 0.0
+
     return {
         "final_val_acc": val_accs[-1],
         "best_val_acc": max(val_accs),
@@ -78,11 +118,19 @@ def _summarize_rows(rows: list[dict]) -> dict:
         "final_params": params,
         "num_epochs": len(rows),
         # Efficiency fields (if present)
-        "wall_seconds": _f("wall_seconds", 0.0),
+        "wall_seconds": wall_seconds,
         "teacher_forwards": _i("teacher_forwards"),
         "train_steps": _i("train_steps"),
+        "auc_val_acc_per_hour": auc_val_acc_per_hour,
+        "time_to_90_val_acc_s": _time_to_acc(0.90),
         "curve": [
-            {"epoch": int(r["epoch"]), "val_acc": float(r["val_acc"]), "train_acc": float(r["train_acc"])}
+            {
+                "epoch": int(r["epoch"]),
+                "val_acc": float(r["val_acc"]),
+                "train_acc": float(r["train_acc"]),
+                "wall_seconds": float(r.get("wall_seconds") or 0.0),
+                "teacher_forwards": int(float(r.get("teacher_forwards") or 0)),
+            }
             for r in rows
         ],
     }
@@ -234,6 +282,31 @@ def _collect_tier2dev() -> dict:
     return {"rows": rows_out}
 
 
+def _collect_tier2paper() -> dict:
+    seeds = [41, 42, 43]
+    rows_out = []
+    for stem, label in TIER2_PAPER_ROWS:
+        per_seed = {}
+        for s in seeds:
+            p = TIER2_PAPER / f"{stem}_seed{s}.csv"
+            if not p.exists():
+                continue
+            per_seed[str(s)] = _summarize_rows(_read_csv(p))
+        if not per_seed:
+            continue
+        seed_pick = sorted(int(k) for k in per_seed.keys())[0]
+        rows_out.append(
+            {
+                "id": stem.replace("_metrics", ""),
+                "label": label,
+                "seeds": sorted(int(k) for k in per_seed.keys()),
+                "per_seed": per_seed,
+                "default_seed": seed_pick,
+            }
+        )
+    return {"rows": rows_out}
+
+
 def main() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     ASSETS.mkdir(parents=True, exist_ok=True)
@@ -252,6 +325,7 @@ def main() -> None:
         "tier1b": t1b["arms"],
         "tier1b_status": t1b["status_html"],
         "tier2dev": _collect_tier2dev(),
+        "tier2paper": _collect_tier2paper(),
     }
 
     json_text = json.dumps(payload, indent=2)

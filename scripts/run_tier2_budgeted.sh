@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tier 2: ResNet CIFAR parity track (teacher ResNet-56, student ResNet-20).
+# Tier 2: run ONLY the new "budgeted teacher-forwards" arms.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -25,16 +25,9 @@ run_one() {
 mkdir -p runs_paper/tier2/logs checkpoints/tier2
 
 for s in $SEEDS; do
-  run_one configs/tier2/teacher_resnet56_cifar10.yaml teacher "$s" tier2_teacher_resnet56_cifar10
-  run_one configs/tier2/student_resnet20_cifar10_ce.yaml student_ce "$s" tier2_student_resnet20_cifar10_ce
-  run_one configs/tier2/student_resnet20_cifar10_kd.yaml student_kd "$s" tier2_student_resnet20_cifar10_kd
   run_one configs/tier2/student_resnet20_cifar10_kd_budgeted.yaml student_kd_budgeted "$s" tier2_student_resnet20_cifar10_kd_budgeted
-  run_one configs/tier2/student_resnet20_cifar10_sched_headwiden.yaml student_sched_headwiden "$s" tier2_student_resnet20_cifar10_sched_headwiden
-  run_one configs/tier2/student_resnet20_cifar10_cgse_headwiden.yaml student_cgse_headwiden "$s" tier2_student_resnet20_cifar10_cgse_headwiden
-  run_one configs/tier2/student_resnet20_cifar10_sched_layer3widen.yaml student_sched_layer3widen "$s" tier2_student_resnet20_cifar10_sched_layer3widen
-  run_one configs/tier2/student_resnet20_cifar10_cgse_multiop.yaml student_cgse_multiop "$s" tier2_student_resnet20_cifar10_cgse_multiop
   run_one configs/tier2/student_resnet20_cifar10_cgse_multiop_kd_budgeted.yaml student_cgse_multiop_kd_budgeted "$s" tier2_student_resnet20_cifar10_cgse_multiop_kd_budgeted
 done
 
-echo "Tier 2 sweep done. See runs/tier2/."
+echo "Tier 2 budgeted-KD sweep done."
 

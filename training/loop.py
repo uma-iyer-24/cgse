@@ -21,6 +21,9 @@ def train_one_epoch(
     teacher: Optional[nn.Module] = None,
     kd_temperature: float = 4.0,
     kd_alpha: float = 0.5,
+    kd_teacher_every_n_steps: int = 1,
+    kd_max_teacher_forwards: int | None = None,
+    teacher_forwards_so_far: int = 0,
     *,
     return_stats: bool = False,
 ):
@@ -42,7 +45,19 @@ def train_one_epoch(
         optimizer.zero_grad(set_to_none=True)
         logits = model(x)
         ce = F.cross_entropy(logits, y)
+        use_teacher = False
         if teacher is not None:
+            every = max(1, int(kd_teacher_every_n_steps))
+            if (train_steps % every) == 0:
+                if kd_max_teacher_forwards is None:
+                    use_teacher = True
+                else:
+                    budget_left = int(kd_max_teacher_forwards) - int(teacher_forwards_so_far) - int(
+                        teacher_forwards
+                    )
+                    use_teacher = budget_left > 0
+
+        if use_teacher:
             with torch.no_grad():
                 t_logits = teacher(x)
             teacher_forwards += 1

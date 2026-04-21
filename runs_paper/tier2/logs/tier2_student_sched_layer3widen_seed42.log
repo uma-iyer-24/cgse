@@ -1,0 +1,53 @@
+[repro] Using --seed 42; experiment_name=tier2_student_resnet20_cifar10_sched_layer3widen_seed42
+Epoch 000 | train_loss 1.4796 | train_acc 0.4481 | val_loss 1.3660 | val_acc 0.5274
+Epoch 001 | train_loss 0.9816 | train_acc 0.6493 | val_loss 1.2359 | val_acc 0.5777
+Epoch 002 | train_loss 0.8001 | train_acc 0.7219 | val_loss 1.2098 | val_acc 0.6122
+Epoch 003 | train_loss 0.7071 | train_acc 0.7536 | val_loss 0.9274 | val_acc 0.6859
+Epoch 004 | train_loss 0.6578 | train_acc 0.7722 | val_loss 0.6787 | val_acc 0.7677
+Epoch 005 | train_loss 0.6225 | train_acc 0.7852 | val_loss 0.8123 | val_acc 0.7227
+Epoch 006 | train_loss 0.5990 | train_acc 0.7940 | val_loss 1.0783 | val_acc 0.6626
+Epoch 007 | train_loss 0.5766 | train_acc 0.8013 | val_loss 0.9332 | val_acc 0.7155
+Epoch 008 | train_loss 0.5586 | train_acc 0.8073 | val_loss 1.3631 | val_acc 0.6157
+Epoch 009 | train_loss 0.5497 | train_acc 0.8107 | val_loss 0.9348 | val_acc 0.7074
+Epoch 010 | train_loss 0.5351 | train_acc 0.8175 | val_loss 0.6527 | val_acc 0.7845
+Epoch 011 | train_loss 0.5274 | train_acc 0.8187 | val_loss 0.8211 | val_acc 0.7384
+Epoch 012 | train_loss 0.5154 | train_acc 0.8252 | val_loss 0.8115 | val_acc 0.7413
+Epoch 013 | train_loss 0.5087 | train_acc 0.8255 | val_loss 0.8085 | val_acc 0.7304
+Epoch 014 | train_loss 0.5065 | train_acc 0.8265 | val_loss 0.8598 | val_acc 0.7236
+Epoch 015 | train_loss 0.5002 | train_acc 0.8278 | val_loss 0.6541 | val_acc 0.7811
+Epoch 016 | train_loss 0.4924 | train_acc 0.8309 | val_loss 0.6472 | val_acc 0.7749
+Epoch 017 | train_loss 0.4840 | train_acc 0.8342 | val_loss 0.7049 | val_acc 0.7730
+Epoch 018 | train_loss 0.4800 | train_acc 0.8336 | val_loss 0.7555 | val_acc 0.7624
+Epoch 019 | train_loss 0.4815 | train_acc 0.8359 | val_loss 0.6896 | val_acc 0.7691
+Epoch 020 | train_loss 0.4733 | train_acc 0.8388 | val_loss 0.6084 | val_acc 0.7981
+Epoch 021 | train_loss 0.4692 | train_acc 0.8394 | val_loss 0.7310 | val_acc 0.7611
+Epoch 022 | train_loss 0.4629 | train_acc 0.8399 | val_loss 0.6835 | val_acc 0.7791
+Epoch 023 | train_loss 0.4660 | train_acc 0.8390 | val_loss 0.6176 | val_acc 0.7934
+Epoch 024 | train_loss 0.4612 | train_acc 0.8427 | val_loss 0.7593 | val_acc 0.7667
+[mutation] (schedule) Applied widen_resnet_layer3(delta=16) after epoch 25; params 272474 -> 381658; optimizer refreshed.
+Epoch 025 | train_loss 0.3189 | train_acc 0.8930 | val_loss 0.3306 | val_acc 0.8874 | mutation=on
+Epoch 026 | train_loss 0.4545 | train_acc 0.8450 | val_loss 0.7197 | val_acc 0.7751 | mutation=on
+Epoch 027 | train_loss 0.4572 | train_acc 0.8420 | val_loss 0.9899 | val_acc 0.7035 | mutation=on
+Epoch 028 | train_loss 0.4582 | train_acc 0.8442 | val_loss 0.6790 | val_acc 0.7851 | mutation=on
+Epoch 029 | train_loss 0.4530 | train_acc 0.8440 | val_loss 0.6661 | val_acc 0.7923 | mutation=on
+Epoch 030 | train_loss 0.4523 | train_acc 0.8450 | val_loss 0.5769 | val_acc 0.8058 | mutation=on
+Epoch 031 | train_loss 0.4513 | train_acc 0.8456 | val_loss 0.6520 | val_acc 0.7873 | mutation=on
+Epoch 032 | train_loss 0.4420 | train_acc 0.8488 | val_loss 0.6701 | val_acc 0.7867 | mutation=on
+Epoch 033 | train_loss 0.4464 | train_acc 0.8456 | val_loss 0.7066 | val_acc 0.7619 | mutation=on
+Epoch 034 | train_loss 0.4447 | train_acc 0.8483 | val_loss 0.6439 | val_acc 0.7866 | mutation=on
+Epoch 035 | train_loss 0.4384 | train_acc 0.8498 | val_loss 0.6551 | val_acc 0.7888 | mutation=on
+Epoch 036 | train_loss 0.4404 | train_acc 0.8490 | val_loss 0.9537 | val_acc 0.7206 | mutation=on
+Epoch 037 | train_loss 0.4411 | train_acc 0.8497 | val_loss 0.7262 | val_acc 0.7581 | mutation=on
+Epoch 038 | train_loss 0.4350 | train_acc 0.8524 | val_loss 0.5848 | val_acc 0.8082 | mutation=on
+Epoch 039 | train_loss 0.4380 | train_acc 0.8506 | val_loss 0.6499 | val_acc 0.7770 | mutation=on
+Epoch 040 | train_loss 0.4300 | train_acc 0.8527 | val_loss 0.6188 | val_acc 0.7997 | mutation=on
+Epoch 041 | train_loss 0.4339 | train_acc 0.8503 | val_loss 0.6178 | val_acc 0.7974 | mutation=on
+Epoch 042 | train_loss 0.4372 | train_acc 0.8498 | val_loss 0.8712 | val_acc 0.7305 | mutation=on
+Epoch 043 | train_loss 0.4300 | train_acc 0.8518 | val_loss 0.6524 | val_acc 0.7855 | mutation=on
+Epoch 044 | train_loss 0.4253 | train_acc 0.8551 | val_loss 0.6609 | val_acc 0.7795 | mutation=on
+Epoch 045 | train_loss 0.4278 | train_acc 0.8527 | val_loss 0.6800 | val_acc 0.7784 | mutation=on
+Epoch 046 | train_loss 0.4291 | train_acc 0.8526 | val_loss 0.5107 | val_acc 0.8275 | mutation=on
+Epoch 047 | train_loss 0.4230 | train_acc 0.8547 | val_loss 0.7626 | val_acc 0.7490 | mutation=on
+Epoch 048 | train_loss 0.4248 | train_acc 0.8551 | val_loss 0.5723 | val_acc 0.8150 | mutation=on
+Epoch 049 | train_loss 0.4242 | train_acc 0.8559 | val_loss 0.7032 | val_acc 0.7764 | mutation=on
+Saved checkpoint to checkpoints/tier2/tier2_student_resnet20_cifar10_sched_layer3widen_seed42.pt

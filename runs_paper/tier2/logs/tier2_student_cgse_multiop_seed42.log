@@ -1,0 +1,54 @@
+[repro] Using --seed 42; experiment_name=tier2_student_resnet20_cifar10_cgse_multiop_seed42
+[critic] CGSE mutation gating: window [25, 25], ε=0.25, force_end=False
+Epoch 000 | train_loss 1.4753 | train_acc 0.4518 | val_loss 1.7185 | val_acc 0.4813 | critic -0.3118
+Epoch 001 | train_loss 0.9438 | train_acc 0.6634 | val_loss 1.0290 | val_acc 0.6527 | critic -0.3926
+Epoch 002 | train_loss 0.7799 | train_acc 0.7263 | val_loss 0.8464 | val_acc 0.7075 | critic -0.3369
+Epoch 003 | train_loss 0.6952 | train_acc 0.7576 | val_loss 0.7889 | val_acc 0.7396 | critic -0.3262
+Epoch 004 | train_loss 0.6464 | train_acc 0.7759 | val_loss 0.7610 | val_acc 0.7457 | critic -0.3156
+Epoch 005 | train_loss 0.6159 | train_acc 0.7870 | val_loss 0.7824 | val_acc 0.7537 | critic -0.3170
+Epoch 006 | train_loss 0.5912 | train_acc 0.7958 | val_loss 1.0322 | val_acc 0.6846 | critic -0.3024
+Epoch 007 | train_loss 0.5721 | train_acc 0.8035 | val_loss 0.8402 | val_acc 0.7193 | critic -0.3279
+Epoch 008 | train_loss 0.5500 | train_acc 0.8109 | val_loss 0.8300 | val_acc 0.7361 | critic -0.3244
+Epoch 009 | train_loss 0.5407 | train_acc 0.8126 | val_loss 0.9298 | val_acc 0.7018 | critic -0.3103
+Epoch 010 | train_loss 0.5257 | train_acc 0.8206 | val_loss 0.7035 | val_acc 0.7630 | critic -0.3476
+Epoch 011 | train_loss 0.5163 | train_acc 0.8217 | val_loss 0.7354 | val_acc 0.7504 | critic -0.3228
+Epoch 012 | train_loss 0.5103 | train_acc 0.8237 | val_loss 0.6711 | val_acc 0.7764 | critic -0.3396
+Epoch 013 | train_loss 0.5051 | train_acc 0.8266 | val_loss 0.7102 | val_acc 0.7513 | critic -0.3231
+Epoch 014 | train_loss 0.4933 | train_acc 0.8300 | val_loss 0.6868 | val_acc 0.7710 | critic -0.3427
+Epoch 015 | train_loss 0.4929 | train_acc 0.8318 | val_loss 0.7182 | val_acc 0.7659 | critic -0.3354
+Epoch 016 | train_loss 0.4854 | train_acc 0.8335 | val_loss 0.5979 | val_acc 0.8030 | critic -0.3574
+Epoch 017 | train_loss 0.4812 | train_acc 0.8350 | val_loss 0.7464 | val_acc 0.7689 | critic -0.3286
+Epoch 018 | train_loss 0.4730 | train_acc 0.8351 | val_loss 1.1414 | val_acc 0.6732 | critic -0.3112
+Epoch 019 | train_loss 0.4704 | train_acc 0.8391 | val_loss 0.5536 | val_acc 0.8118 | critic -0.3825
+Epoch 020 | train_loss 0.4731 | train_acc 0.8380 | val_loss 0.7689 | val_acc 0.7478 | critic -0.3258
+Epoch 021 | train_loss 0.4641 | train_acc 0.8414 | val_loss 0.6367 | val_acc 0.7925 | critic -0.3722
+Epoch 022 | train_loss 0.4640 | train_acc 0.8390 | val_loss 0.5882 | val_acc 0.7968 | critic -0.3591
+Epoch 023 | train_loss 0.4604 | train_acc 0.8405 | val_loss 0.6917 | val_acc 0.7721 | critic -0.3449
+Epoch 024 | train_loss 0.4538 | train_acc 0.8430 | val_loss 0.7764 | val_acc 0.7560 | critic -0.3503
+Epoch 025 | train_loss 0.3130 | train_acc 0.8928 | val_loss 0.3356 | val_acc 0.8868 | critic -0.4021
+Epoch 026 | train_loss 0.2719 | train_acc 0.9081 | val_loss 0.3306 | val_acc 0.8887 | critic -0.3735
+Epoch 027 | train_loss 0.2478 | train_acc 0.9161 | val_loss 0.3191 | val_acc 0.8897 | critic -0.3742
+Epoch 028 | train_loss 0.2369 | train_acc 0.9193 | val_loss 0.3201 | val_acc 0.8931 | critic -0.3772
+Epoch 029 | train_loss 0.2271 | train_acc 0.9223 | val_loss 0.3147 | val_acc 0.8943 | critic -0.3784
+Epoch 030 | train_loss 0.2202 | train_acc 0.9241 | val_loss 0.3129 | val_acc 0.8945 | critic -0.3802
+Epoch 031 | train_loss 0.2129 | train_acc 0.9272 | val_loss 0.3215 | val_acc 0.8931 | critic -0.3813
+Epoch 032 | train_loss 0.2068 | train_acc 0.9290 | val_loss 0.3184 | val_acc 0.8942 | critic -0.3845
+Epoch 033 | train_loss 0.2035 | train_acc 0.9303 | val_loss 0.3199 | val_acc 0.8957 | critic -0.3863
+Epoch 034 | train_loss 0.1980 | train_acc 0.9326 | val_loss 0.3129 | val_acc 0.8968 | critic -0.3880
+Epoch 035 | train_loss 0.1933 | train_acc 0.9334 | val_loss 0.3176 | val_acc 0.8955 | critic -0.3888
+Epoch 036 | train_loss 0.1919 | train_acc 0.9332 | val_loss 0.3378 | val_acc 0.8890 | critic -0.3880
+Epoch 037 | train_loss 0.1864 | train_acc 0.9366 | val_loss 0.3262 | val_acc 0.8899 | critic -0.3928
+Epoch 038 | train_loss 0.1854 | train_acc 0.9365 | val_loss 0.3237 | val_acc 0.8975 | critic -0.3975
+Epoch 039 | train_loss 0.1825 | train_acc 0.9368 | val_loss 0.3394 | val_acc 0.8892 | critic -0.3933
+Epoch 040 | train_loss 0.1473 | train_acc 0.9511 | val_loss 0.2888 | val_acc 0.9030 | critic -0.4066
+Epoch 041 | train_loss 0.1379 | train_acc 0.9550 | val_loss 0.2832 | val_acc 0.9054 | critic -0.4030
+Epoch 042 | train_loss 0.1324 | train_acc 0.9569 | val_loss 0.2822 | val_acc 0.9084 | critic -0.4055
+Epoch 043 | train_loss 0.1302 | train_acc 0.9567 | val_loss 0.2824 | val_acc 0.9055 | critic -0.4051
+Epoch 044 | train_loss 0.1282 | train_acc 0.9578 | val_loss 0.2826 | val_acc 0.9054 | critic -0.4085
+Epoch 045 | train_loss 0.1253 | train_acc 0.9592 | val_loss 0.2814 | val_acc 0.9067 | critic -0.4115
+Epoch 046 | train_loss 0.1231 | train_acc 0.9599 | val_loss 0.2806 | val_acc 0.9085 | critic -0.4141
+Epoch 047 | train_loss 0.1218 | train_acc 0.9603 | val_loss 0.2838 | val_acc 0.9074 | critic -0.4151
+Epoch 048 | train_loss 0.1239 | train_acc 0.9593 | val_loss 0.2843 | val_acc 0.9048 | critic -0.4166
+Epoch 049 | train_loss 0.1173 | train_acc 0.9612 | val_loss 0.2853 | val_acc 0.9062 | critic -0.4210
+Saved checkpoint to checkpoints/tier2/tier2_student_resnet20_cifar10_cgse_multiop_seed42.pt
+Saved critic weights to checkpoints/tier2/tier2_student_resnet20_cifar10_cgse_multiop_seed42_critic.pt
