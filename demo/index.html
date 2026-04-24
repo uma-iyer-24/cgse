@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CGSE — Critic-Guided Self-Evolution</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ======================== NAV ======================== -->
+<nav>
+  <span class="nav-brand">CG<em>SE</em></span>
+  <ul class="nav-links">
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#mutation-demo-section">Demo</a></li>
+    <li><a href="#showcase">Classifier</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#applications">Applications</a></li>
+  </ul>
+</nav>
+
+<!-- ======================== HERO ======================== -->
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-overlay"></div>
+  <div id="mutation-indicator">CRITIC: widen layer 2 →</div>
+  <div class="hero-content">
+    <div class="hero-badge">Research Preview · CIFAR-10</div>
+    <h1>Neural networks that evolve themselves</h1>
+    <p>CGSE trains a small critic to decide when and how to grow a network —
+       no teacher model, no manual architecture search, no guessing.</p>
+    <div class="hero-cta">
+      <a href="#how-it-works" class="btn btn-primary">See how it works ↓</a>
+      <a href="#results" class="btn btn-ghost">View results</a>
+    </div>
+  </div>
+  <div class="scroll-cue">↓</div>
+</section>
+
+<!-- ======================== PROBLEM ======================== -->
+<section id="problem">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">The challenge</div>
+      <h2 class="section-title">Most methods need a large teacher. We don't.</h2>
+      <p class="section-sub">Knowledge Distillation borrows accuracy from a pretrained teacher — but that teacher costs extra compute on every single training batch. CGSE replaces it with a self-trained critic.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card bad reveal d1">
+        <span class="card-tag bad">Traditional KD</span>
+        <h3>Teacher + Student pipeline</h3>
+        <p>A ResNet-56 teacher must run a forward pass on every training batch. Over 50 epochs that's <strong>19,550 extra forward passes</strong> — unavoidable overhead at every step.</p>
+        <div class="flow-diagram">
+          <span class="flow-node teacher">ResNet-56 Teacher</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-node student">ResNet-20 Student</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-node output">91.66% acc</span>
+        </div>
+        <div class="cost-meter">
+          <div class="meter-label"><span>Teacher forward passes</span><span id="kd-num">0</span></div>
+          <div class="meter-bar"><div class="meter-fill bad" id="kd-fill"></div></div>
+        </div>
+      </div>
+      <div class="problem-card good reveal d2">
+        <span class="card-tag good">CGSE (ours)</span>
+        <h3>Critic-guided self-evolution</h3>
+        <p>A tiny 3-layer critic observes optimization statistics each epoch to decide when and how to structurally mutate the student — <strong>zero teacher overhead</strong>.</p>
+        <div class="flow-diagram">
+          <span class="flow-node critic">DiscreteCritic</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-node student">ResNet-20 Student</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-node output">90.85% acc</span>
+        </div>
+        <div class="cost-meter">
+          <div class="meter-label"><span>Teacher forward passes</span><span id="cgse-num">0</span></div>
+          <div class="meter-bar"><div class="meter-fill good" id="cgse-fill" style="width:2%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== HOW IT WORKS ======================== -->
+<section id="how-it-works">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Methodology</div>
+      <h2 class="section-title">Train → Observe → Mutate → Continue</h2>
+      <p class="section-sub">Four stages that let the network discover its own optimal architecture during training — guided entirely by what the critic learns from optimization signals.</p>
+    </div>
+    <div class="stepper reveal" id="stepper">
+      <div class="step active" data-step="0">
+        <div class="step-num">1</div>
+        <div class="step-title">Warm-up</div>
+        <div class="step-body">Student trains normally with SGD + cosine LR</div>
+      </div>
+      <div class="step" data-step="1">
+        <div class="step-num">2</div>
+        <div class="step-title">Critic observes</div>
+        <div class="step-body">Reads 8-dim state: loss, acc, Δacc, params…</div>
+      </div>
+      <div class="step" data-step="2">
+        <div class="step-num">3</div>
+        <div class="step-title">Decide</div>
+        <div class="step-body">Critic picks: noop / head-widen / layer3-widen / deepen</div>
+      </div>
+      <div class="step" data-step="3">
+        <div class="step-num">4</div>
+        <div class="step-title">Resume &amp; improve</div>
+        <div class="step-body">Function-preserving init; training continues seamlessly</div>
+      </div>
+    </div>
+    <div id="step-detail" class="step-detail reveal d1"></div>
+    <div class="step-progress"><div class="step-progress-fill" id="step-progress-fill"></div></div>
+  </div>
+</section>
+
+<!-- ======================== MUTATION DEMO ======================== -->
+<section id="mutation-demo-section">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Interactive demo</div>
+      <h2 class="section-title">Watch the critic fire a mutation live</h2>
+      <p class="section-sub">Click <strong>Run Evolution</strong> to simulate a 30-epoch training run. At epoch&nbsp;15 the critic kicks in — watch the hidden layer reshape itself in real-time.</p>
+    </div>
+    <div class="demo-wrap reveal d1">
+      <canvas id="demo-canvas"></canvas>
+      <div class="demo-panel">
+        <div class="demo-stat">
+          <span class="demo-stat-label">Epoch</span>
+          <span class="demo-stat-val" id="demo-epoch">0 / 30</span>
+        </div>
+        <div class="demo-stat">
+          <span class="demo-stat-label">Val accuracy</span>
+          <span class="demo-stat-val" id="demo-acc">—</span>
+        </div>
+        <div class="demo-stat">
+          <span class="demo-stat-label">Hidden nodes</span>
+          <span class="demo-stat-val" id="demo-nodes">4</span>
+        </div>
+        <div class="demo-stat">
+          <span class="demo-stat-label">Params</span>
+          <span class="demo-stat-val" id="demo-params">272K</span>
+        </div>
+        <div class="demo-log" id="demo-log"><span class="ev">// click Run Evolution to start</span></div>
+        <button class="btn btn-primary" id="demo-btn" style="width:100%">▶ Run Evolution</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== CIFAR SHOWCASE ======================== -->
+<section id="showcase">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Classifier showcase</div>
+      <h2 class="section-title">See the trained model classify CIFAR-10</h2>
+      <p class="section-sub">Click any image — the CGSE-trained ResNet-20 student returns its top-5 confidence scores for that class. <strong>90.85% accuracy</strong>. Teacher-free.</p>
+    </div>
+    <div class="cifar-grid reveal d1" id="cifar-grid"></div>
+    <div class="conf-panel reveal d2" id="conf-panel" style="display:none"></div>
+  </div>
+</section>
+
+<!-- ======================== RESULTS ======================== -->
+<section id="results">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Experimental results</div>
+      <h2 class="section-title">Numbers from our paper runs</h2>
+      <p class="section-sub">All results on full CIFAR-10, seed 42. Test 1 uses CifarGraphNet with 5 arms. Test 2 compares ResNet-20 variants against a ResNet-56 teacher over 50 epochs.</p>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat-card c-accent reveal d1">
+        <div class="stat-card-label">Test 1 — CGSE best val acc</div>
+        <div class="stat-card-val"><span data-count="84.68">0</span>%</div>
+        <div class="stat-card-sub">Teacher-free; beats fixed baseline</div>
+      </div>
+      <div class="stat-card c-good reveal d2">
+        <div class="stat-card-label">Teacher forwards saved (Test 2)</div>
+        <div class="stat-card-val"><span data-count="19550">0</span></div>
+        <div class="stat-card-sub">CGSE = 0 vs KD's 19,550</div>
+      </div>
+      <div class="stat-card c-accent2 reveal d3">
+        <div class="stat-card-label">Wall-clock savings vs KD</div>
+        <div class="stat-card-val"><span data-count="199">0</span>s</div>
+        <div class="stat-card-sub">3,045s (KD) → 2,846s (CGSE)</div>
+      </div>
+    </div>
+
+    <p class="chart-heading reveal">Test 1 — accuracy comparison (CifarGraphNet, 5 arms, seed 42)</p>
+    <div class="chart-box reveal d1"><canvas id="chart-t1"></canvas></div>
+
+    <p class="chart-heading reveal">Test 2 — best validation accuracy (ResNet track, seed 42)</p>
+    <div class="chart-box reveal d1"><canvas id="chart-t2-bar"></canvas></div>
+
+    <p class="chart-heading reveal">Test 2 — learning curves over 50 epochs (seed 42)</p>
+    <div class="chart-box reveal d1"><canvas id="chart-t2-lines"></canvas></div>
+  </div>
+</section>
+
+<!-- ======================== WINS ======================== -->
+<section id="wins">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Competitive advantage</div>
+      <h2 class="section-title">Where CGSE beats existing systems</h2>
+      <p class="section-sub">CGSE doesn't always top raw accuracy — but it wins where deployment actually matters.</p>
+    </div>
+    <div class="wins-grid">
+      <div class="win-card reveal d1">
+        <div class="win-icon">🚫</div>
+        <h3>Teacher-free evolution</h3>
+        <p>CGSE achieves structural evolution with zero teacher forward passes. Traditional KD must run a full 855K-param ResNet-56 on every training batch.</p>
+        <span class="win-stat">0 teacher fwd (vs 19,550)</span>
+      </div>
+      <div class="win-card reveal d2">
+        <div class="win-icon">⚡</div>
+        <h3>Faster wall-clock training</h3>
+        <p>By eliminating teacher inference entirely, CGSE finishes 50-epoch training in 2,846s versus Student KD's 3,045s — 6.5% faster end-to-end.</p>
+        <span class="win-stat">2,846s vs 3,045s (−6.5%)</span>
+      </div>
+      <div class="win-card reveal d3">
+        <div class="win-icon">🧠</div>
+        <h3>Learns when to grow</h3>
+        <p>The critic is trained with REINFORCE to maximise post-mutation validation gain. It learns early mutations hurt, late-stage widening helps.</p>
+        <span class="win-stat">REINFORCE · 8-dim state</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== APPLICATIONS ======================== -->
+<section id="applications">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Real-world impact</div>
+      <h2 class="section-title">Where teacher-free evolution matters</h2>
+      <p class="section-sub">Any domain where a large pretrained teacher doesn't exist or can't run alongside the student benefits directly from CGSE.</p>
+    </div>
+    <div class="app-grid">
+      <div class="app-card reveal d1">
+        <div class="app-icon">📱</div>
+        <h3>Edge &amp; mobile</h3>
+        <p>Train compact models on-device without cloud teacher inference — critical for privacy-sensitive and offline deployments.</p>
+      </div>
+      <div class="app-card reveal d2">
+        <div class="app-icon">🏥</div>
+        <h3>Medical imaging</h3>
+        <p>Rare-disease datasets rarely have large pretrained teachers. CGSE finds efficient architectures from scratch with no external dependency.</p>
+      </div>
+      <div class="app-card reveal d3">
+        <div class="app-icon">🚗</div>
+        <h3>Autonomous vehicles</h3>
+        <p>On-device model adaptation under strict compute budgets — grow only the layers that matter for the current driving scenario.</p>
+      </div>
+      <div class="app-card reveal d4">
+        <div class="app-icon">🛰️</div>
+        <h3>Satellite &amp; drone</h3>
+        <p>Low-power inference pipelines that self-tune architecture based on available compute — no external teacher required mid-flight.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== COMPARISON TABLE ======================== -->
+<section id="compare">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Head-to-head</div>
+      <h2 class="section-title">CGSE vs traditional approaches</h2>
+      <p class="section-sub">Full comparison on Test 2 — ResNet track, full CIFAR-10, seed 42, 50 epochs.</p>
+    </div>
+    <div class="table-wrap reveal d1">
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Model</th>
+            <th>Best val acc</th>
+            <th>Teacher fwd passes</th>
+            <th>Wall time (s)</th>
+            <th>Params</th>
+            <th>Needs teacher?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Teacher baseline</strong></td>
+            <td class="mono">ResNet-56</td>
+            <td>92.38%</td>
+            <td>0</td>
+            <td>3,452</td>
+            <td>855K</td>
+            <td class="loss">N/A</td>
+          </tr>
+          <tr>
+            <td><strong>Student + KD</strong></td>
+            <td class="mono">ResNet-20</td>
+            <td>91.66%</td>
+            <td class="loss">19,550 ✕</td>
+            <td class="loss">3,045 ✕</td>
+            <td>272K</td>
+            <td class="loss">Yes ✕</td>
+          </tr>
+          <tr>
+            <td><strong>CGSE multi-op</strong><span class="badge">ours</span></td>
+            <td class="mono">ResNet-20</td>
+            <td>90.85%</td>
+            <td class="win">0 ✓</td>
+            <td class="win">2,846 ✓</td>
+            <td>272K</td>
+            <td class="win">No ✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== FOOTER ======================== -->
+<footer>
+  <p><strong>CGSE</strong> — Critic-Guided Self-Evolution · CIFAR-10 experiments</p>
+  <p><a href="https://github.com/uma-iyer-24/cgse">github.com/uma-iyer-24/cgse</a></p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
