@@ -122,13 +122,51 @@
   </div>
 </section>
 
+<!-- ======================== TEACHER-DRIVEN SE DEMO (SEArch) ======================== -->
+<section id="teacher-demo-section">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Interactive demo · Part 1 of 2</div>
+      <h2 class="section-title">First: how a <em>teacher</em> guides architecture growth (SEArch)</h2>
+      <p class="section-sub">SEArch (Liang et&nbsp;al. 2025) puts a large pretrained <strong style="color:var(--warn)">teacher</strong> (top) alongside the <strong style="color:var(--accent)">student</strong> (bottom). The teacher does <strong>two</strong> jobs: (1)&nbsp;every batch it runs a forward pass to produce soft targets for KD, and (2)&nbsp;at the end of every short training stage it <strong>scores every student layer</strong> with a "modification value" — the highest score is the bottleneck, and the student is grown there (edge-split / widen / head-widen). Click <strong>Run SEArch</strong> to watch both jobs in action — and the teacher-forwards counter climb past <strong>22,000</strong>.</p>
+    </div>
+    <div class="demo-wrap reveal d1">
+      <canvas id="teacher-canvas"></canvas>
+      <div class="demo-panel">
+        <div class="demo-stat">
+          <span class="demo-stat-label">Epoch</span>
+          <span class="demo-stat-val" id="teacher-epoch">0 / 30</span>
+        </div>
+        <div class="demo-stat">
+          <span class="demo-stat-label">Stage step</span>
+          <span class="demo-stat-val" id="teacher-step">0</span>
+        </div>
+        <div class="demo-stat">
+          <span class="demo-stat-label">Teacher forwards</span>
+          <span class="demo-stat-val" id="teacher-fwd" style="color:var(--warn)">0</span>
+        </div>
+        <div class="demo-stat">
+          <span class="demo-stat-label">Student val acc</span>
+          <span class="demo-stat-val" id="teacher-acc">—</span>
+        </div>
+        <div class="demo-stat">
+          <span class="demo-stat-label">Student shape</span>
+          <span class="demo-stat-val" id="teacher-shape" style="font-size:0.78rem">3-4-10</span>
+        </div>
+        <div class="demo-log" id="teacher-log"><span class="ev">// click Run SEArch to start</span></div>
+        <button class="btn btn-primary" id="teacher-btn" style="width:100%">▶ Run SEArch</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ======================== MUTATION DEMO ======================== -->
 <section id="mutation-demo-section">
   <div class="wrap">
     <div class="reveal">
-      <div class="section-label">Interactive demo</div>
-      <h2 class="section-title">Watch the critic fire a mutation live</h2>
-      <p class="section-sub">Click <strong>Run Evolution</strong> to simulate a 30-epoch training run. At epoch&nbsp;15 the critic kicks in — watch the hidden layer reshape itself in real-time.</p>
+      <div class="section-label">Interactive demo · Part 2 of 2</div>
+      <h2 class="section-title">Now: how the <em>critic</em> guides architecture growth (CGSE)</h2>
+      <p class="section-sub">Same outer loop as SEArch above — same operators, same kind of growth — but the teacher is gone. A tiny <strong style="color:var(--accent2)">critic</strong> in the top-left looks <em>only</em> at the student's own training stats (loss, val curve, deltas) and decides whether to <strong>widen</strong>, <strong>deepen</strong>, do a <strong>head-widen</strong>, or do nothing. Same architecture changes, but teacher-forwards counter stays at <strong style="color:var(--good)">0</strong> the entire run.</p>
     </div>
     <div class="demo-wrap reveal d1">
       <canvas id="demo-canvas"></canvas>

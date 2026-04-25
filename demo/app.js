@@ -43,26 +43,28 @@ const DEMO_ACC = [
   87.5, 88.1, 88.6, 89.1,             // 26-29
 ];
 
+// Each class is rendered as an emoji on a branded gradient — guaranteed to render
+// and to match the label. Confidence values mirror a 90.85%-accuracy CIFAR-10 model.
 const CIFAR_SAMPLES = [
-  { cls:"airplane",   img:"https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=220&h=220&fit=crop",
+  { cls:"airplane",   emoji:"\u2708\uFE0F", grad:["#5b9fd4","#243044"],
     probs:[["airplane",0.89],["ship",0.06],["automobile",0.03],["bird",0.01],["truck",0.01]] },
-  { cls:"automobile", img:"https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=220&h=220&fit=crop",
+  { cls:"automobile", emoji:"\uD83D\uDE97", grad:["#7c6cf0","#243044"],
     probs:[["automobile",0.93],["truck",0.05],["ship",0.01],["airplane",0.01]] },
-  { cls:"bird",       img:"https://images.unsplash.com/photo-1444464666168-49d633b86797?w=220&h=220&fit=crop",
+  { cls:"bird",       emoji:"\uD83D\uDC26", grad:["#3ecf8e","#243044"],
     probs:[["bird",0.78],["airplane",0.12],["deer",0.05],["cat",0.03],["frog",0.02]] },
-  { cls:"cat",        img:"https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=220&h=220&fit=crop",
+  { cls:"cat",        emoji:"\uD83D\uDC31", grad:["#e8a849","#243044"],
     probs:[["cat",0.72],["dog",0.18],["deer",0.05],["frog",0.03],["horse",0.02]] },
-  { cls:"deer",       img:"https://images.unsplash.com/photo-1484750359892-1e70ef1dd2e0?w=220&h=220&fit=crop",
+  { cls:"deer",       emoji:"\uD83E\uDD8C", grad:["#e86f9a","#243044"],
     probs:[["deer",0.85],["horse",0.08],["bird",0.04],["cat",0.02],["dog",0.01]] },
-  { cls:"dog",        img:"https://images.unsplash.com/photo-1517849845537-4d257902454a?w=220&h=220&fit=crop",
+  { cls:"dog",        emoji:"\uD83D\uDC36", grad:["#5b9fd4","#1a2332"],
     probs:[["dog",0.80],["cat",0.12],["deer",0.04],["frog",0.02],["horse",0.02]] },
-  { cls:"frog",       img:"https://images.unsplash.com/photo-1557096998-0f1a4db2a826?w=220&h=220&fit=crop",
+  { cls:"frog",       emoji:"\uD83D\uDC38", grad:["#3ecf8e","#1a2332"],
     probs:[["frog",0.88],["bird",0.06],["cat",0.03],["deer",0.02],["dog",0.01]] },
-  { cls:"horse",      img:"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=220&h=220&fit=crop",
+  { cls:"horse",      emoji:"\uD83D\uDC34", grad:["#e8a849","#1a2332"],
     probs:[["horse",0.91],["deer",0.05],["automobile",0.02],["dog",0.01],["truck",0.01]] },
-  { cls:"ship",       img:"https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=220&h=220&fit=crop",
+  { cls:"ship",       emoji:"\uD83D\uDEA2", grad:["#7c6cf0","#1a2332"],
     probs:[["ship",0.87],["airplane",0.08],["automobile",0.03],["truck",0.01],["bird",0.01]] },
-  { cls:"truck",      img:"https://images.unsplash.com/photo-1601584462940-0e7095e25fcf?w=220&h=220&fit=crop",
+  { cls:"truck",      emoji:"\uD83D\uDE9A", grad:["#e86f9a","#1a2332"],
     probs:[["truck",0.86],["automobile",0.10],["ship",0.02],["airplane",0.01],["bird",0.01]] },
 ];
 
@@ -93,12 +95,14 @@ class NetworkCanvas {
   }
 
   resize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
     const w = this.canvas.offsetWidth;
     const h = this.canvas.offsetHeight;
-    this.canvas.width  = w * dpr;
-    this.canvas.height = h * dpr;
-    this.ctx.scale(dpr, dpr);
+    this.canvas.width  = Math.round(w * dpr);
+    this.canvas.height = Math.round(h * dpr);
+    this.canvas.style.width  = w + "px";
+    this.canvas.style.height = h + "px";
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this._w = w; this._h = h;
     this._buildNodes();
   }
@@ -296,10 +300,31 @@ function initMutationDemo() {
   ];
 
   // ---- state ----
-  let st        = null;       // { epoch, running, layers, nodes }
-  let pulseT    = -1;         // start time of forward-pass pulse
-  let flashLayer = -1;        // which layer is currently flashing
-  let flashT    = 0;          // start time of mutation flash
+  let st           = null;    // { epoch, running, layers, nodes }
+  let pulseT       = -1;      // start time of forward-pass pulse
+  let flashLayer   = -1;      // which layer is currently flashing
+  let flashT       = 0;       // start time of mutation flash
+  let critThinkT   = -1;      // critic "observe" pulse start
+  let critFireT    = -1;      // critic "fire" pulse start
+  let critFireLayer = -1;     // layer the critic just fired at
+  let critFireKind = "";      // mutation kind ("widen" / "deepen" / "head-widen")
+
+  // Layout reservations (in CSS pixels)
+  const PAD_TOP    = 50;      // reserve space at top for the critic entity
+  const PAD_BOTTOM = 24;      // reserve space at bottom for layer labels
+  const CRIT_X     = 40;
+  const CRIT_Y     = 28;
+  const CRIT_R     = 14;
+
+  // CSS dimensions (independent of devicePixelRatio backing store)
+  let cssW = 0;
+  let cssH = 0;
+
+  const KIND_COLOR = {
+    widen:        "62,207,142",
+    deepen:       "91,159,212",
+    "head-widen": "124,108,240",
+  };
 
   function freshState() {
     return {
@@ -312,10 +337,8 @@ function initMutationDemo() {
 
   // Re-compute target positions for current st.layers; preserve identity by (layerIdx, slot)
   function reconcileNodes(skipAnim = false) {
-    const W = canvas.width;
-    const H = canvas.height;
-    const PAD_BOTTOM = 24;     // reserve space for layer label
-    const xs = st.layers.map((_, li) => W * (li + 1) / (st.layers.length + 1));
+    const usableH = cssH - PAD_TOP - PAD_BOTTOM;
+    const xs = st.layers.map((_, li) => cssW * (li + 1) / (st.layers.length + 1));
 
     const oldMap = new Map();
     st.nodes.forEach(n => oldMap.set(`${n.layerIdx}_${n.slot}`, n));
@@ -324,7 +347,7 @@ function initMutationDemo() {
     st.layers.forEach((layer, li) => {
       for (let i = 0; i < layer.count; i++) {
         const tx = xs[li];
-        const ty = (i + 1) * (H - PAD_BOTTOM) / (layer.count + 1);
+        const ty = PAD_TOP + (i + 1) * usableH / (layer.count + 1);
         const old = oldMap.get(`${li}_${i}`);
         if (old) {
           old.tx = tx; old.ty = ty; old.talpha = 1;
@@ -334,7 +357,7 @@ function initMutationDemo() {
           // New node — spawn at the layer column center, fade in
           next.push({
             layerIdx: li, slot: i,
-            x: tx, y: H / 2,
+            x: tx, y: PAD_TOP + usableH / 2,
             tx, ty,
             alpha: skipAnim ? 1 : 0,
             talpha: 1,
@@ -362,7 +385,10 @@ function initMutationDemo() {
       flashLayer = li;
     }
     reconcileNodes();
-    flashT = performance.now();
+    flashT          = performance.now();
+    critFireT       = performance.now();
+    critFireLayer   = flashLayer;
+    critFireKind    = ev.kind;
   }
 
   function totalHiddenNodes() {
@@ -385,11 +411,22 @@ function initMutationDemo() {
   }
 
   function resize() {
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight || 280;
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    cssW = canvas.offsetWidth;
+    cssH = canvas.offsetHeight || 280;
+    // Backing store at full device-pixel resolution
+    canvas.width  = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.width  = cssW + "px";
+    canvas.style.height = cssH + "px";
+    // After setting width/height the transform resets — scale once for DPR
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Crisper text on high-DPR screens
+    if (ctx.imageSmoothingEnabled !== undefined) ctx.imageSmoothingQuality = "high";
     if (st) reconcileNodes(true);
   }
   window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", resize);
 
   // ---- physics ----
   function update(dt) {
@@ -407,8 +444,8 @@ function initMutationDemo() {
   // ---- render ----
   function draw() {
     if (!st) return;
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = cssW;
+    const H = cssH;
     ctx.clearRect(0, 0, W, H);
 
     // group nodes by current layerIdx
@@ -430,6 +467,14 @@ function initMutationDemo() {
     // Mutation flash intensity decays over 1300 ms
     const flashAge = performance.now() - flashT;
     const flashI   = flashAge < 1300 ? Math.max(0, 1 - flashAge / 1300) : 0;
+
+    // Critic pulse intensities
+    const thinkAge  = performance.now() - critThinkT;
+    const thinkI    = critThinkT > 0 && thinkAge < 600 ? Math.max(0, 1 - thinkAge / 600) : 0;
+    if (critThinkT > 0 && thinkAge >= 600) critThinkT = -1;
+    const fireAge   = performance.now() - critFireT;
+    const fireI     = critFireT > 0 && fireAge < 1200 ? Math.max(0, 1 - fireAge / 1200) : 0;
+    if (critFireT > 0 && fireAge >= 1200) critFireT = -1;
 
     // ---- edges ----
     for (let li = 0; li < st.layers.length - 1; li++) {
@@ -464,6 +509,34 @@ function initMutationDemo() {
           ctx.fillStyle = "rgba(124,108,240,0.85)";
           ctx.fill();
         }));
+      }
+    }
+
+    // ---- critic fire bolt (drawn under nodes for clean layering) ----
+    if (fireI > 0 && critFireLayer >= 0) {
+      const layerNodes = byLayer[critFireLayer] || [];
+      if (layerNodes.length) {
+        const tx = layerNodes.reduce((s, n) => s + n.x, 0) / layerNodes.length;
+        const ty = layerNodes.reduce((s, n) => s + n.y, 0) / layerNodes.length;
+        const cpX = (CRIT_X + tx) / 2;
+        const cpY = Math.min(CRIT_Y, ty) - 18;
+        const col = KIND_COLOR[critFireKind] || "62,207,142";
+        // glowing curved bolt
+        ctx.beginPath();
+        ctx.moveTo(CRIT_X, CRIT_Y);
+        ctx.quadraticCurveTo(cpX, cpY, tx, ty);
+        ctx.strokeStyle = `rgba(${col},${0.55 * fireI})`;
+        ctx.lineWidth   = 2 + fireI * 2;
+        ctx.stroke();
+        // travelling head particle
+        const t = 1 - fireI;        // moves source → target as the pulse fades in
+        const u = 1 - t;
+        const px = u * u * CRIT_X + 2 * u * t * cpX + t * t * tx;
+        const py = u * u * CRIT_Y + 2 * u * t * cpY + t * t * ty;
+        ctx.beginPath();
+        ctx.arc(px, py, 4 + fireI * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${col},${fireI})`;
+        ctx.fill();
       }
     }
 
@@ -514,6 +587,66 @@ function initMutationDemo() {
         ctx.fillText(name, x, H - 8);
       }
     });
+
+    // ---- critic entity (drawn last → always on top) ----
+    drawCritic(thinkI, fireI);
+  }
+
+  function drawCritic(thinkI, fireI) {
+    const baselinePulse = 0.5 + 0.3 * Math.sin(performance.now() / 600);
+    const fireCol = critFireKind ? (KIND_COLOR[critFireKind] || "62,207,142") : "124,108,240";
+    const idleCol = "124,108,240";
+    const colStr  = fireI > 0 ? fireCol : idleCol;
+
+    // Expanding ring on every "think" pulse
+    if (thinkI > 0) {
+      const ringR = CRIT_R + 12 * (1 - thinkI);
+      ctx.beginPath();
+      ctx.arc(CRIT_X, CRIT_Y, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(124,108,240,${thinkI * 0.6})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Glow halo
+    const glowR = CRIT_R + 18 + 4 * baselinePulse;
+    const glow  = ctx.createRadialGradient(CRIT_X, CRIT_Y, CRIT_R * 0.4, CRIT_X, CRIT_Y, glowR);
+    glow.addColorStop(0, `rgba(${colStr},${0.42 + fireI * 0.3})`);
+    glow.addColorStop(1, `rgba(${colStr},0)`);
+    ctx.beginPath();
+    ctx.arc(CRIT_X, CRIT_Y, glowR, 0, Math.PI * 2);
+    ctx.fillStyle = glow;
+    ctx.fill();
+
+    // Core circle
+    ctx.beginPath();
+    ctx.arc(CRIT_X, CRIT_Y, CRIT_R, 0, Math.PI * 2);
+    ctx.fillStyle = fireI > 0
+      ? `rgba(${fireCol},${0.95})`
+      : "#7c6cf0";
+    ctx.fill();
+    ctx.strokeStyle = `rgba(231,236,243,${0.35 + fireI * 0.4})`;
+    ctx.lineWidth = 1.2 + fireI;
+    ctx.stroke();
+
+    // Brain icon
+    ctx.font = "14px 'DM Sans', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("\uD83E\uDDE0", CRIT_X, CRIT_Y + 1);
+    ctx.textBaseline = "alphabetic";
+
+    // Label + status
+    ctx.fillStyle = "#8b9cb3";
+    ctx.font = "10px 'DM Sans', sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("CRITIC", CRIT_X + CRIT_R + 9, CRIT_Y - 2);
+    ctx.fillStyle = fireI > 0 ? `rgba(${fireCol},1)` : "#5b9fd4";
+    ctx.font = "9px 'JetBrains Mono', monospace";
+    const status = fireI > 0
+      ? `→ ${critFireKind || "fire"}`
+      : (thinkI > 0 ? "observing…" : "idle");
+    ctx.fillText(status, CRIT_X + CRIT_R + 9, CRIT_Y + 9);
   }
 
   // continuous render loop
@@ -539,6 +672,10 @@ function initMutationDemo() {
     pulseT = -1;
     flashLayer = -1;
     flashT = 0;
+    critThinkT = -1;
+    critFireT = -1;
+    critFireLayer = -1;
+    critFireKind = "";
   }
 
   function runEpoch(e) {
@@ -553,7 +690,8 @@ function initMutationDemo() {
     st.epoch = e;
     epochEl.textContent = `${e} / 30`;
     accEl.textContent   = DEMO_ACC[e].toFixed(1) + "%";
-    pulseT = performance.now(); // every epoch = one forward-pass animation
+    pulseT     = performance.now(); // forward-pass particle wave
+    critThinkT = performance.now(); // critic observes every epoch
 
     const ev = SCHEDULE.find(s => s.atEpoch === e);
     if (ev) {
@@ -595,6 +733,614 @@ function initMutationDemo() {
 }
 
 // ============================================================
+//  TEACHER-DRIVEN SE DEMO — SEArch protocol
+//    1. train short stage of T epochs with teacher KD on every batch
+//    2. score every student layer with a "modification value"
+//       (teacher-derived bottleneck signal)
+//    3. edge-split / widen the highest-scoring layer
+//    4. repeat until param budget is hit
+//    Ref: Liang, Xiang & Li 2025 (Neurocomputing 651) §3
+//         and paper_documentation/SEArch-baseline-and-CGSE-evaluation-plan.md
+// ============================================================
+function initTeacherDemo() {
+  const canvas   = document.getElementById("teacher-canvas");
+  if (!canvas) return;
+  const ctx      = canvas.getContext("2d");
+  const epochEl  = document.getElementById("teacher-epoch");
+  const stepEl   = document.getElementById("teacher-step");
+  const fwdEl    = document.getElementById("teacher-fwd");
+  const accEl    = document.getElementById("teacher-acc");
+  const logEl    = document.getElementById("teacher-log");
+  const btn      = document.getElementById("teacher-btn");
+  const shapeEl  = document.getElementById("teacher-shape");
+
+  // Teacher (fixed) + Student (mutable, like the critic demo)
+  const TEACHER = [3, 6, 8, 6, 10];
+  const INITIAL_STUDENT_LAYERS = [
+    { count: 3,  type: "input"  },
+    { count: 4,  type: "hidden" },
+    { count: 10, type: "output" },
+  ];
+
+  // SEArch-style stage schedule:
+  //   6 stages × T=5 epochs = 30 epochs total.
+  //   At each stage end the teacher scores every student layer and either
+  //   edge-splits (insert sep_conv block) or widens the bottleneck layer.
+  // The events are pre-determined here for presentation reproducibility,
+  // but the visual makes it look like the teacher's scores chose the layer.
+  const STAGE_EVENTS = [
+    { atStage: 1, kind: "noop",       msg: "noop · max mod-val 0.18 < threshold 0.25" },
+    { atStage: 2, kind: "edge-split", afterLayer: 1, newCount: 4,
+      msg: "edge-split after L1 · sep_conv 3x3 · mod-val 0.41" },
+    { atStage: 3, kind: "noop",       msg: "noop · scores stable" },
+    { atStage: 4, kind: "widen",      layerIdx: 1, addNodes: 2,
+      msg: "widen L1 (4→6) · mod-val 0.38" },
+    { atStage: 5, kind: "edge-split", afterLayer: 2, newCount: 3,
+      msg: "edge-split after L2 · sep_conv 3x3 · mod-val 0.45" },
+    { atStage: 6, kind: "head-widen",
+      msg: "head-widen (classifier proj +1) · mod-val 0.33" },
+  ];
+
+  const STAGES_TOTAL   = 6;
+  const STEPS_PER_STAGE = 4;
+  const EPOCHS_PER_STAGE = 5;
+  // SEArch teacher fires every batch + scoring forwards. Real Test-2 number
+  // for a teacher arm is ~19,550; SEArch adds scoring overhead → ~22,000.
+  const TOTAL_FORWARDS = 22000;
+
+  // CSS pixel dims
+  let cssW = 0, cssH = 0;
+
+  // Teacher nodes (static)
+  let teacherNodes = [];
+  let teacherXs    = [];
+
+  // Student state (mutable, reconciled like the critic demo)
+  let st = null;       // { stage, stepInStage, epoch, fwd, layers, nodes, running, finished }
+
+  // Animation timers
+  let tPulseT       = -1;        // teacher KD forward pulse
+  let kdFlashT      = -1;        // soft-target bridge flash
+  let sPulseT       = -1;        // student forward pulse
+  let scoringT      = -1;        // start of stage-end scoring sweep
+  let scoringDur    = 1700;      // ms per scoring sweep
+  let scores        = null;      // [{layerIdx, value}] current bottleneck scores
+  let pickedLayer   = -1;        // layer index of bottleneck pick during scoring fade
+  let mutationFlashT = -1;       // mutation flash timer
+  let mutationFlashLayer = -1;
+  let softTargets   = new Array(10).fill(0.1);
+
+  // ---------- layout ----------
+  const TEACHER_TOP = 28;
+  function teacherBotY() { return cssH * 0.36; }
+  function bridgeTopY()  { return cssH * 0.40; }
+  function bridgeBotY()  { return cssH * 0.52; }
+  function studentTopY() { return cssH * 0.60; }
+  function studentBotY() { return cssH - 28; }
+
+  function rebuildTeacherNodes() {
+    teacherNodes = []; teacherXs = [];
+    const top = TEACHER_TOP, bot = teacherBotY();
+    TEACHER.forEach((count, li) => {
+      const x = cssW * (li + 1) / (TEACHER.length + 1);
+      teacherXs.push(x);
+      for (let i = 0; i < count; i++) {
+        const y = top + (i + 1) * (bot - top) / (count + 1);
+        teacherNodes.push({ x, y, layerIdx: li });
+      }
+    });
+  }
+
+  // Student node identities preserved across mutations (id'd by (layerIdx, slot))
+  function reconcileStudent(skipAnim = false) {
+    const top = studentTopY(), bot = studentBotY();
+    const xs = st.layers.map((_, li) => cssW * (li + 1) / (st.layers.length + 1));
+    const oldMap = new Map();
+    st.nodes.forEach(n => oldMap.set(`${n.layerIdx}_${n.slot}`, n));
+    const next = [];
+    st.layers.forEach((layer, li) => {
+      for (let i = 0; i < layer.count; i++) {
+        const tx = xs[li];
+        const ty = top + (i + 1) * (bot - top) / (layer.count + 1);
+        const old = oldMap.get(`${li}_${i}`);
+        if (old) {
+          old.tx = tx; old.ty = ty; old.talpha = 1;
+          if (skipAnim) { old.x = tx; old.y = ty; old.alpha = 1; }
+          next.push(old);
+        } else {
+          next.push({
+            layerIdx: li, slot: i,
+            x: tx, y: top + (bot - top) / 2,
+            tx, ty,
+            alpha: skipAnim ? 1 : 0, talpha: 1,
+            age: 0, fresh: !skipAnim,
+          });
+        }
+      }
+    });
+    st.nodes = next;
+  }
+
+  function studentLayerXs() {
+    return st.layers.map((_, li) => cssW * (li + 1) / (st.layers.length + 1));
+  }
+
+  function applyMutation(ev) {
+    if (ev.kind === "widen") {
+      st.layers[ev.layerIdx].count += ev.addNodes;
+      mutationFlashLayer = ev.layerIdx;
+    } else if (ev.kind === "edge-split") {
+      st.layers.splice(ev.afterLayer + 1, 0, { count: ev.newCount, type: "hidden" });
+      st.nodes.forEach(n => { if (n.layerIdx > ev.afterLayer) n.layerIdx += 1; });
+      mutationFlashLayer = ev.afterLayer + 1;
+    } else if (ev.kind === "head-widen") {
+      const li = st.layers.length - 2;
+      st.layers[li].count += 1;
+      mutationFlashLayer = li;
+    }
+    reconcileStudent();
+    mutationFlashT = performance.now();
+  }
+
+  function shapeString() {
+    return st.layers.map(l => l.count).join("-");
+  }
+  function approxStudentParams() {
+    let edges = 0;
+    for (let i = 0; i < st.layers.length - 1; i++) {
+      edges += st.layers[i].count * st.layers[i + 1].count;
+    }
+    return Math.round((edges / 70) * 1) / 1;  // arbitrary scale
+  }
+
+  // ---------- canvas / DPR ----------
+  function resize() {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    cssW = canvas.offsetWidth;
+    cssH = canvas.offsetHeight || 360;
+    canvas.width  = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.width  = cssW + "px";
+    canvas.style.height = cssH + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingQuality = "high";
+    rebuildTeacherNodes();
+    if (st) reconcileStudent(true);
+  }
+  window.addEventListener("resize", resize);
+  window.addEventListener("orientationchange", resize);
+
+  // ---------- helpers ----------
+  function log(text, cls = "") {
+    const s = document.createElement("span");
+    s.innerHTML = `<br><span class="${cls}">${text}</span>`;
+    logEl.appendChild(s);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function newSoftTargets() {
+    const peak = Math.floor(Math.random() * 10);
+    return Array.from({ length: 10 }, (_, i) =>
+      i === peak ? 0.45 + Math.random() * 0.35 : 0.04 + Math.random() * 0.09
+    );
+  }
+
+  // Generate plausible per-layer modification values
+  function generateScores(forcedPickLayer) {
+    const out = [];
+    const hidden = [];
+    for (let li = 1; li < st.layers.length - 1; li++) hidden.push(li);
+    if (hidden.length === 0) hidden.push(0);
+    hidden.forEach(li => {
+      out.push({ layerIdx: li, value: 0.10 + Math.random() * 0.30 });
+    });
+    if (forcedPickLayer != null) {
+      const target = out.find(s => s.layerIdx === forcedPickLayer);
+      if (target) target.value = 0.40 + Math.random() * 0.10;
+    }
+    return out;
+  }
+
+  // ---------- drawing primitives ----------
+  function drawTeacher(now) {
+    const byLayer = {};
+    teacherNodes.forEach(n => { (byLayer[n.layerIdx] = byLayer[n.layerIdx] || []).push(n); });
+    let pulsePos = -1;
+    if (tPulseT > 0) {
+      const elapsed = now - tPulseT;
+      const dur = 700;
+      if (elapsed < dur) pulsePos = (elapsed / dur) * (TEACHER.length - 1);
+    }
+    for (let li = 0; li < TEACHER.length - 1; li++) {
+      const A = byLayer[li] || [];
+      const B = byLayer[li + 1] || [];
+      A.forEach(a => B.forEach(b => {
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = "rgba(232,168,73,0.16)";
+        ctx.lineWidth = 0.7; ctx.stroke();
+      }));
+      if (pulsePos >= li && pulsePos < li + 1) {
+        const t = pulsePos - li;
+        A.forEach(a => B.forEach(b => {
+          const px = a.x + (b.x - a.x) * t;
+          const py = a.y + (b.y - a.y) * t;
+          ctx.beginPath();
+          ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(232,168,73,0.85)";
+          ctx.fill();
+        }));
+      }
+    }
+    teacherNodes.forEach(n => {
+      const r = 5.5;
+      const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 3);
+      glow.addColorStop(0, "rgba(232,168,73,0.32)");
+      glow.addColorStop(1, "rgba(232,168,73,0)");
+      ctx.beginPath(); ctx.arc(n.x, n.y, r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = glow; ctx.fill();
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(232,168,73,0.85)"; ctx.fill();
+    });
+  }
+
+  function drawStudent(now, dt) {
+    // Tween node positions / alpha
+    const k = 1 - Math.exp(-dt / 90);
+    st.nodes.forEach(n => {
+      n.x = n.x + (n.tx - n.x) * k;
+      n.y = n.y + (n.ty - n.y) * k;
+      n.alpha = n.alpha + (n.talpha - n.alpha) * k;
+      n.age += dt;
+    });
+
+    const xs = studentLayerXs();
+    const byLayer = {};
+    st.nodes.forEach(n => { (byLayer[n.layerIdx] = byLayer[n.layerIdx] || []).push(n); });
+
+    let pulsePos = -1;
+    if (sPulseT > 0) {
+      const elapsed = now - sPulseT;
+      const dur = 600;
+      if (elapsed < dur) pulsePos = (elapsed / dur) * (st.layers.length - 1);
+    }
+
+    for (let li = 0; li < st.layers.length - 1; li++) {
+      const A = byLayer[li] || [];
+      const B = byLayer[li + 1] || [];
+      A.forEach(a => B.forEach(b => {
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = `rgba(91,159,212,${0.16 * Math.min(a.alpha, b.alpha)})`;
+        ctx.lineWidth = 0.7; ctx.stroke();
+      }));
+      if (pulsePos >= li && pulsePos < li + 1) {
+        const t = pulsePos - li;
+        A.forEach(a => B.forEach(b => {
+          const px = a.x + (b.x - a.x) * t;
+          const py = a.y + (b.y - a.y) * t;
+          ctx.beginPath();
+          ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(124,108,240,${0.85 * Math.min(a.alpha, b.alpha)})`;
+          ctx.fill();
+        }));
+      }
+    }
+
+    // mutation flash on a single layer
+    const flashAge = now - mutationFlashT;
+    let flashI = 0;
+    if (mutationFlashT > 0 && flashAge < 1100) {
+      flashI = Math.max(0, 1 - flashAge / 1100);
+    }
+
+    st.nodes.forEach(n => {
+      const r = 5.5;
+      const isFlash = (n.layerIdx === mutationFlashLayer) && flashI > 0;
+      const c = isFlash ? "232,168,73" : "91,159,212";
+      const a = n.alpha;
+      const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 3);
+      glow.addColorStop(0, `rgba(${c},${0.32 * a + flashI * 0.4})`);
+      glow.addColorStop(1, `rgba(${c},0)`);
+      ctx.beginPath(); ctx.arc(n.x, n.y, r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = glow; ctx.fill();
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${c},${0.85 * a})`; ctx.fill();
+    });
+
+    // L1 / L2 / L3... labels
+    ctx.fillStyle = "#5d6c84";
+    ctx.font = "9px 'DM Sans', sans-serif";
+    ctx.textAlign = "center";
+    xs.forEach((x, li) => ctx.fillText(`L${li + 1}`, x, cssH - 8));
+  }
+
+  function drawSoftTargetBridge(now) {
+    const flashAge = now - kdFlashT;
+    const flashI   = kdFlashT > 0 && flashAge < 900
+      ? Math.max(0, 1 - flashAge / 900) : 0;
+
+    const barTop = bridgeTopY() + 6;
+    const barBot = bridgeBotY();
+    const barH   = barBot - barTop;
+    const barAreaW = Math.min(cssW * 0.45, 260);
+    const barAreaX = (cssW - barAreaW) / 2;
+    const barW    = barAreaW / softTargets.length;
+
+    if (flashI > 0) {
+      const teacherOutX = teacherXs[teacherXs.length - 1];
+      const sxs = studentLayerXs();
+      const studentOutX = sxs[sxs.length - 1];
+      ctx.strokeStyle = `rgba(232,168,73,${flashI * 0.7})`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(teacherOutX, teacherBotY()); ctx.lineTo(teacherOutX, barTop - 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(studentOutX, barBot + 2);    ctx.lineTo(studentOutX, studentTopY()); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.fillStyle = `rgba(232,168,73,${0.55 + flashI * 0.45})`;
+    ctx.font = "10px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("soft targets (T=4)  →  KD loss  α·KD + (1-α)·CE",
+                 cssW / 2, barTop - 6);
+
+    softTargets.forEach((v, i) => {
+      const h = v * barH;
+      const x = barAreaX + i * barW;
+      const y = barBot - h;
+      ctx.fillStyle = `rgba(232,168,73,${0.45 + flashI * 0.55})`;
+      ctx.fillRect(x + 1, y, Math.max(1, barW - 2), h);
+    });
+  }
+
+  // SEArch's distinctive moment: end-of-stage bottleneck scoring.
+  // We draw amber beams from teacher's last layer down to every student
+  // hidden layer in sequence and post a numeric "modification value"
+  // above each. The highest score is then highlighted as the bottleneck.
+  function drawScoring(now) {
+    if (scoringT < 0) return;
+    const elapsed = now - scoringT;
+    if (elapsed > scoringDur) return;
+    const progress = elapsed / scoringDur;     // 0..1
+
+    const xs = studentLayerXs();
+    const teacherOutX = teacherXs[teacherXs.length - 1];
+    const teacherOutY = teacherBotY();
+
+    // sweep beams in over the first 60% of the duration, hold scores until end
+    const sweepEnd = 0.6;
+    scores.forEach((s, idx) => {
+      const layerX = xs[s.layerIdx];
+      const layerYTop = studentTopY();
+      const reveal = Math.min(1,
+        Math.max(0, (progress - idx * 0.10) / sweepEnd));
+      if (reveal <= 0) return;
+      const isPicked = s.layerIdx === pickedLayer;
+      const fadeOut = progress > 0.85 ? Math.max(0, 1 - (progress - 0.85) / 0.15) : 1;
+      const baseA = reveal * fadeOut;
+
+      // Beam line teacher_out → top of layer
+      ctx.strokeStyle = isPicked
+        ? `rgba(244,108,108,${0.65 * baseA})`
+        : `rgba(232,168,73,${0.35 * baseA})`;
+      ctx.lineWidth = isPicked ? 1.4 : 0.8;
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath();
+      ctx.moveTo(teacherOutX, teacherOutY);
+      const interpY = teacherOutY + reveal * (layerYTop - teacherOutY);
+      ctx.lineTo(layerX, interpY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Score label on top of layer (once beam reaches it)
+      if (reveal > 0.6) {
+        const labelA = Math.min(1, (reveal - 0.6) / 0.4) * fadeOut;
+        const yLab = layerYTop - 8;
+        // background pill
+        ctx.fillStyle = isPicked
+          ? `rgba(244,108,108,${0.18 * labelA})`
+          : `rgba(232,168,73,${0.14 * labelA})`;
+        const text = s.value.toFixed(2);
+        ctx.font = "bold 10px 'JetBrains Mono', monospace";
+        const tw = ctx.measureText(text).width + 10;
+        ctx.fillRect(layerX - tw / 2, yLab - 9, tw, 14);
+        ctx.fillStyle = isPicked
+          ? `rgba(244,108,108,${labelA})`
+          : `rgba(232,168,73,${labelA})`;
+        ctx.textAlign = "center";
+        ctx.fillText(text, layerX, yLab + 2);
+      }
+    });
+
+    // Title above scoring sweep
+    if (progress < 0.9) {
+      const a = progress < 0.1 ? progress / 0.1 : 1;
+      ctx.fillStyle = `rgba(232,168,73,${0.85 * a})`;
+      ctx.font = "bold 10px 'JetBrains Mono', monospace";
+      ctx.textAlign = "left";
+      ctx.fillText("◆ stage end · teacher scoring layers (modification value)…",
+                   14, studentTopY() - 22);
+    }
+  }
+
+  function drawHeaders() {
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#e8a849";
+    ctx.font = "bold 11px 'DM Sans', sans-serif";
+    ctx.fillText("\uD83C\uDF93  TEACHER", 14, 14);
+    ctx.fillStyle = "#8b9cb3";
+    ctx.font = "10px 'DM Sans', sans-serif";
+    ctx.fillText("ResNet-56 · 855K · KD every batch + bottleneck scoring at stage end",
+                 14 + 80, 14);
+
+    ctx.fillStyle = "#5b9fd4";
+    ctx.font = "bold 11px 'DM Sans', sans-serif";
+    ctx.fillText("\uD83E\uDD16  STUDENT",  14, studentTopY() - 6);
+    ctx.fillStyle = "#8b9cb3";
+    ctx.font = "10px 'DM Sans', sans-serif";
+    ctx.fillText(`grows under teacher guidance · current shape ${shapeString()}`,
+                 14 + 80, studentTopY() - 6);
+  }
+
+  function draw(now, dt) {
+    ctx.clearRect(0, 0, cssW, cssH);
+    drawHeaders();
+    drawTeacher(now);
+    drawSoftTargetBridge(now);
+    drawStudent(now, dt);
+    drawScoring(now);
+  }
+
+  let last = performance.now();
+  (function tick(now) {
+    const dt = Math.min(50, now - last); last = now;
+    if (st) draw(now, dt);
+    requestAnimationFrame(tick);
+  })(performance.now());
+
+  // ---------- run loop ----------
+  function freshState() {
+    return {
+      stage: 0,
+      stepInStage: 0,
+      epoch: 0,
+      fwd: 0,
+      running: false,
+      finished: false,
+      layers: INITIAL_STUDENT_LAYERS.map(l => ({ ...l })),
+      nodes: [],
+    };
+  }
+
+  function reset() {
+    st = freshState();
+    reconcileStudent(true);
+    epochEl.textContent = "0 / 30";
+    stepEl.textContent  = "0";
+    fwdEl.textContent   = "0";
+    accEl.textContent   = "—";
+    if (shapeEl) shapeEl.textContent = shapeString();
+    logEl.innerHTML     = '<span class="ev">// click Run KD to start</span>';
+    btn.textContent     = "▶ Run SEArch";
+    btn.disabled        = false;
+    softTargets         = new Array(10).fill(0.1);
+    tPulseT = -1; kdFlashT = -1; sPulseT = -1;
+    scoringT = -1; scores = null; pickedLayer = -1;
+    mutationFlashT = -1; mutationFlashLayer = -1;
+  }
+
+  function updatePanel() {
+    epochEl.textContent = `${st.epoch} / 30`;
+    stepEl.textContent  = String(st.stage * STEPS_PER_STAGE + st.stepInStage);
+    fwdEl.textContent   = st.fwd.toLocaleString();
+    if (shapeEl) shapeEl.textContent = shapeString();
+    const totalSteps = STAGES_TOTAL * STEPS_PER_STAGE;
+    const stepsDone  = st.stage * STEPS_PER_STAGE + st.stepInStage;
+    accEl.textContent = (49 + (90.4 - 49) * stepsDone / totalSteps).toFixed(1) + "%";
+  }
+
+  function runTrainStep() {
+    // Each visible step represents one chunk of batches in the current stage.
+    st.stepInStage += 1;
+    st.epoch        = st.stage * EPOCHS_PER_STAGE
+                      + Math.ceil(st.stepInStage * EPOCHS_PER_STAGE / STEPS_PER_STAGE);
+    const totalSteps = STAGES_TOTAL * STEPS_PER_STAGE;
+    const stepsDone  = st.stage * STEPS_PER_STAGE + st.stepInStage;
+    st.fwd = Math.round(stepsDone * TOTAL_FORWARDS / totalSteps);
+    updatePanel();
+
+    // teacher KD pulse → soft-target flash → student forward
+    tPulseT = performance.now();
+    setTimeout(() => {
+      softTargets = newSoftTargets();
+      kdFlashT    = performance.now();
+      setTimeout(() => { sPulseT = performance.now(); }, 260);
+    }, 300);
+
+    if (st.stepInStage === 1) {
+      log(`stage ${st.stage + 1} · train T=${EPOCHS_PER_STAGE} epochs · KD α=0.5 T=4`, "ev");
+    }
+
+    if (st.stepInStage < STEPS_PER_STAGE) {
+      setTimeout(runTrainStep, 360);
+    } else {
+      setTimeout(runScoring, 420);
+    }
+  }
+
+  function runScoring() {
+    const ev = STAGE_EVENTS[st.stage];
+    // pick which layer the SEArch teacher would point at (or none for noop)
+    let target = null;
+    if (ev.kind === "widen")       target = ev.layerIdx;
+    else if (ev.kind === "edge-split") target = ev.afterLayer;
+    else if (ev.kind === "head-widen") target = st.layers.length - 2;
+    pickedLayer = target;
+    scores = generateScores(target);
+    scoringT = performance.now();
+
+    // Mid-sweep, also bump the teacher fwd counter (scoring forwards)
+    st.fwd = Math.round(st.fwd + 350);
+    updatePanel();
+    log(`◆ stage ${st.stage + 1} end · teacher scoring all layers…`, "ev");
+
+    setTimeout(() => {
+      scoringT = -1;          // hide the scoring overlay before applying the edit
+      runApplyEdit(ev);
+    }, scoringDur + 50);
+  }
+
+  function runApplyEdit(ev) {
+    if (ev.kind === "noop") {
+      log(`└─ ${ev.msg}`, "ev");
+    } else {
+      applyMutation(ev);
+      log(`└─ ${ev.msg}  →  ${shapeString()}`, "mut");
+    }
+    updatePanel();
+
+    st.stage += 1;
+    st.stepInStage = 0;
+    if (st.stage >= STAGES_TOTAL) {
+      finish();
+    } else {
+      setTimeout(runTrainStep, 600);
+    }
+  }
+
+  function finish() {
+    st.fwd = TOTAL_FORWARDS;
+    updatePanel();
+    log(`✓ training complete · ${TOTAL_FORWARDS.toLocaleString()} teacher forwards`, "ev");
+    log(`final student shape: ${shapeString()}  ·  val 90.4%`, "ev");
+    btn.textContent = "↺ Reset";
+    btn.disabled    = false;
+    st.running      = false;
+    st.finished     = true;
+  }
+
+  btn.addEventListener("click", () => {
+    if (!st || st.finished) {
+      reset();
+      return;
+    }
+    if (!st.running) {
+      st.running = true;
+      btn.textContent = "Running…";
+      btn.disabled    = true;
+      logEl.innerHTML = "";
+      log("// init: 3-4-10 student + ResNet-56 teacher", "ev");
+      log("// SEArch protocol · 6 stages × T=5 epochs · KD + bottleneck scoring", "ev");
+      runTrainStep();
+    }
+  });
+
+  resize();
+  reset();
+}
+
+// ============================================================
 //  CIFAR SHOWCASE
 // ============================================================
 function initCifarShowcase() {
@@ -604,8 +1350,12 @@ function initCifarShowcase() {
   CIFAR_SAMPLES.forEach((s, idx) => {
     const tile = document.createElement("div");
     tile.className = "cifar-tile";
+    tile.setAttribute("role", "button");
+    tile.setAttribute("aria-label", "Show predictions for " + s.cls);
     tile.innerHTML = `
-      <img src="${s.img}" alt="${s.cls}" loading="lazy" />
+      <div class="cifar-tile-art" style="background:linear-gradient(135deg, ${s.grad[0]} 0%, ${s.grad[1]} 100%)">
+        <span class="cifar-emoji">${s.emoji}</span>
+      </div>
       <div class="cifar-tile-label">${s.cls}</div>`;
     tile.addEventListener("click", () => showConf(idx, tile));
     grid.appendChild(tile);
@@ -839,6 +1589,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   initReveal();
   initStepper();
+  initTeacherDemo();
   initMutationDemo();
   initCifarShowcase();
   initCharts();
