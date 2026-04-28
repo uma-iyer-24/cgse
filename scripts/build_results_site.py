@@ -23,6 +23,7 @@ TIER1 = ROOT / "runs" / "tier1" / "metrics"
 TIER1B = ROOT / "runs" / "tier1b" / "metrics"
 TIER2 = ROOT / "runs" / "tier2" / "metrics"
 TIER2_PAPER = ROOT / "runs_paper" / "tier2" / "metrics"
+TIER3 = ROOT / "runs_paper" / "tier3" / "metrics"
 FIG_SRC = ROOT / "paper_documentation" / "figures"
 
 # Tier 1b full runs: epochs 0..49 → 50 rows
@@ -54,6 +55,20 @@ TIER2_PAPER_ROWS = [
     ("tier2_student_resnet20_sched_layer3widen_metrics", "Scheduled layer3 widen (ResNet-20)"),
     ("tier2_student_resnet20_cgse_multiop_metrics", "CGSE multi-op (ResNet-20)"),
     ("tier2_student_resnet20_cgse_multiop_kd_budgeted_metrics", "CGSE multi-op + budgeted KD (ResNet-20)"),
+]
+
+# Tier 3: paper-faithful SEArch reproduction + CGSE-on-SEArch ablation grid.
+# Matched cadence (epochs_per_stage = 8) across SEArch and all CGSE arms.
+# Files land under runs_paper/tier3/metrics/<stem>_seed<N>.csv.
+TIER3_ROWS = [
+    ("tier3_teacher_resnet56_metrics", "Teacher (ResNet-56, 100 ep)"),
+    ("tier3_student_resnet20_ce_metrics", "Student CE (ResNet-20)"),
+    ("tier3_student_resnet20_kd_metrics", "Student KD (ResNet-20)"),
+    ("tier3_student_resnet20_searh_metrics", "SEArch (paper-faithful)"),
+    ("tier3_student_resnet20_cgse_base_metrics", "CGSE base (no probe, no baseline)"),
+    ("tier3_student_resnet20_cgse_baseline_metrics", "CGSE + baseline (variance reduction)"),
+    ("tier3_student_resnet20_cgse_probe_metrics", "CGSE + probe (locality)"),
+    ("tier3_student_resnet20_cgse_full_metrics", "CGSE full (probe + baseline) [headline]"),
 ]
 
 
@@ -307,6 +322,36 @@ def _collect_tier2paper() -> dict:
     return {"rows": rows_out}
 
 
+def _collect_tier3() -> dict:
+    """Aggregate Tier 3 (paper-faithful SEArch + CGSE) metrics.
+
+    Same row pattern as Tier 2 paper, but reads from
+    ``runs_paper/tier3/metrics/`` and uses ``TIER3_ROWS``.
+    """
+    seeds = [42, 43, 44]
+    rows_out = []
+    for stem, label in TIER3_ROWS:
+        per_seed = {}
+        for s in seeds:
+            p = TIER3 / f"{stem}_seed{s}.csv"
+            if not p.exists():
+                continue
+            per_seed[str(s)] = _summarize_rows(_read_csv(p))
+        if not per_seed:
+            continue
+        seed_pick = sorted(int(k) for k in per_seed.keys())[0]
+        rows_out.append(
+            {
+                "id": stem.replace("_metrics", ""),
+                "label": label,
+                "seeds": sorted(int(k) for k in per_seed.keys()),
+                "per_seed": per_seed,
+                "default_seed": seed_pick,
+            }
+        )
+    return {"rows": rows_out}
+
+
 def main() -> None:
     DATA.mkdir(parents=True, exist_ok=True)
     ASSETS.mkdir(parents=True, exist_ok=True)
@@ -326,6 +371,7 @@ def main() -> None:
         "tier1b_status": t1b["status_html"],
         "tier2dev": _collect_tier2dev(),
         "tier2paper": _collect_tier2paper(),
+        "tier3": _collect_tier3(),
     }
 
     json_text = json.dumps(payload, indent=2)

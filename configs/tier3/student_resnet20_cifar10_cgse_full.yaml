@@ -1,0 +1,75 @@
+# Tier 3 — CGSE full (probe ON, baseline ON). Ablation row 4 of 4 -- THE HEADLINE ARM.
+#
+# Role in paper: the version we expect to beat SEArch on the (accuracy,
+# wall-clock, teacher-forwards) triple. Same outer loop as SEArch, no
+# teacher (zero teacher forwards), per-candidate critic with both the
+# probe locality signal AND the EMA-baseline variance reduction.
+#
+# Both ablation rows above (cgse_probe, cgse_baseline) should sit between
+# CGSE base and CGSE full, and ideally CGSE full > CGSE probe + CGSE
+# baseline - CGSE base, indicating compositionality.
+#
+# epochs_per_stage = 8 matches SEArch and the other CGSE arms (Choice A).
+# This is critical for the headline claim "same outer loop, only the
+# signal differs" -- without matched cadence, a reviewer can attribute
+# any CGSE win to faster decision pace rather than the critic.
+experiment:
+  name: tier3_student_resnet20_cifar10_cgse_full
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: none
+  log_csv: runs_paper/tier3/metrics/tier3_student_resnet20_cgse_full_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: true
+  log_jsonl: runs_paper/tier3/mutations/tier3_student_resnet20_cgse_full_mutations.jsonl
+
+critic:
+  enabled: false
+
+searh:
+  enabled: true
+  selector: critic
+  param_budget_factor: 1.5
+  epochs_per_stage: 8        # MATCHED to SEArch
+  B_op: 7
+  deepen_first: true
+  d_k: 64
+  hidden_dim: 64
+  critic_lr: 0.01
+  critic_weight_decay: 0.0
+  epsilon: 0.30
+  entropy_beta: 0.01
+  final_retrain_epochs: 10
+  max_epochs_hint: 234
+
+  # ----- Ablation toggles -----
+  use_student_probe: true    # ON
+  baseline_momentum: 0.9     # ON

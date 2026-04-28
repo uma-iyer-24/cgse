@@ -1,0 +1,75 @@
+# Tier 3 — CGSE base (probe OFF, baseline OFF). Ablation row 1 of 4.
+#
+# Role in paper: "What does naive teacher -> critic substitution buy you?"
+# Identical SEArch outer loop, no auxiliary attention-imitation loss
+# (plain CE), and the per-candidate critic learns from raw REINFORCE with
+# no variance reduction.
+#
+# Implementation note for "baseline OFF": with baseline_momentum = 1.0 the
+# update rule baseline_value <- 1.0 * baseline_value + 0.0 * R pins
+# baseline_value at its 0.0 init forever, so advantage = R - 0 = R, which
+# is exactly raw REINFORCE.
+#
+# epochs_per_stage = 8 matches the SEArch arm so the comparison isolates
+# (i) the MV-signal source and (ii) the variance-reduction / locality
+# choices, not the outer-loop schedule.
+experiment:
+  name: tier3_student_resnet20_cifar10_cgse_base
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: none
+  log_csv: runs_paper/tier3/metrics/tier3_student_resnet20_cgse_base_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: true
+  log_jsonl: runs_paper/tier3/mutations/tier3_student_resnet20_cgse_base_mutations.jsonl
+
+critic:
+  enabled: false             # legacy single-decision critic disabled
+
+searh:
+  enabled: true
+  selector: critic
+  param_budget_factor: 1.5
+  epochs_per_stage: 8        # MATCHED to SEArch arm (Choice A)
+  B_op: 7
+  deepen_first: true
+  d_k: 64
+  hidden_dim: 64
+  critic_lr: 0.01
+  critic_weight_decay: 0.0
+  epsilon: 0.30
+  entropy_beta: 0.01
+  final_retrain_epochs: 10
+  max_epochs_hint: 234       # 28 stages * 8 ep + 10 retrain (used to normalise epoch in critic state)
+
+  # ----- Ablation toggles -----
+  use_student_probe: false   # OFF: critic uses only the global state vector
+  baseline_momentum: 1.0     # OFF: baseline pinned at 0 -> raw REINFORCE

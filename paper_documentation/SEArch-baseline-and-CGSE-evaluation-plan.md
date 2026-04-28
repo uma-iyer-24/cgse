@@ -44,6 +44,11 @@ So SEArch is **not** classical NAS over a giant supernet in the same way as DART
 
 ## 3. Gap between this repository and the SEArch paper (honest)
 
+> **Update (Apr 2026).** A paper-faithful SEArch implementation now lives
+> in this repo and a CGSE arm is built directly on top of it. The table
+> below reflects the *previous* state; the new state and what CGSE
+> borrows is documented in §3a.
+
 | SEArch paper | This repo (today) |
 |--------------|-------------------|
 | DAG student, residual separable conv edges, iterative edge split | Sequential **`GraphModule`**, **`CifarGraphNet`**, **`edge_widen`** / **`edge_split`** |
@@ -51,6 +56,73 @@ So SEArch is **not** classical NAS over a giant supernet in the same way as DART
 | Modification value score for bottleneck edges | YAML epoch schedule or (future) **critic** scalar |
 | Multi-stage search + long final retrain | Single training run; shorter epochs in configs |
 | CIFAR-10/100, ImageNet, some NeRF | **CIFAR-10** first |
+
+### 3a. Paper-faithful SEArch (now implemented) and what CGSE borrows from it
+
+A paper-faithful SEArch implementation has been added under
+`configs/tier2/student_resnet20_cifar10_searh.yaml` with the following
+mechanism (file pointers inline):
+
+| SEArch component (paper §) | This repo's faithful module |
+|----------------------------|-----------------------------|
+| Channel-space attention KD (Eqs. 1-3, §3.2) | `training/searh_attention.py::ChannelAttentionKD` and `MultiNodeAttentionKD` (forward hooks on stage outputs `layer1`, `layer2`, `layer3`; per-channel descriptor → softmax attention → projected feature → squared L2) |
+| Imitation loss `L_im` (Eq. 3) and combined loss `L = L_CE + λ · L_im` (Eq. 4) | `training/searh_loop.py::_train_one_epoch_with_attn`, with cosine λ-anneal across each stage |
+| Modification value `MV(n) = D(n) · deg+/deg-` (Eq. 5) | `evolution/searh_mv.py::compute_per_node_distances` then `modification_values` (deg± collapses to 1 in CIFAR-ResNets, documented in `deg_plus_minus`) |
+| Edge-splitting deepen (`sep_conv_3x3` stacked on edge, function-preserving) | `models/searh_blocks.py::DeepenBlock` (`SepConv3x3` with zero-init last BN, wrapped in residual) + `ops/searh_deepen.py::deepen_resnet_stage` |
+| Edge-splitting widen (insert branch node + 2 sep-convs in parallel, identity-init) | `models/searh_blocks.py::WidenedBlock` (parallel `SepConv3x3` summed into existing `BasicBlock`) + `ops/searh_widen.py::widen_resnet_stage` |
+| `B_op` cap on stacked deepens per stage | `evolution/candidates.py::enumerate_candidates` and `count_deepens_in_stage` |
+| Param-budget termination | `searh_loop.run_searh`: stops when `params ≥ param_budget_factor × initial_params` |
+| Stage-by-stage train-then-evolve outer loop (Algorithm 1) | `training/searh_loop.py::run_searh` |
+| Final retrain at fixed architecture | `searh.final_retrain_epochs` in config drives a no-mutation tail |
+
+**CGSE-on-SEArch.** The CGSE arm
+(`configs/tier2/student_resnet20_cifar10_cgse_searh.yaml`) re-uses the
+*same* `run_searh` outer loop and *same* edge-splitting operators with
+two changes:
+
+1. **No teacher.** `teacher.enabled: false`. No channel-attention KD, no
+   `L_im`. Loss reduces to plain CE, so teacher forwards stay at 0
+   throughout the run.
+2. **Critic replaces MV(n).** `searh.selector: critic` swaps the teacher's
+   MV scorer for `critics/searh_critic.py::PerCandidateCritic` — a small
+   MLP that takes `(global_state, local_descriptor)` per candidate and
+   outputs a scalar score; argmax (with ε-greedy exploration) chooses
+   `(stage, op)`. The critic is updated every stage by REINFORCE on
+   `R = val_acc(after) − val_acc(before)` plus an entropy bonus.
+
+**What CGSE *explicitly borrows* from SEArch (with citations in code
+comments).**
+
+- The iterative *train → score → split → train* outer loop (Algorithm 1).
+- The two edge-splitting operators (deepen, widen) and their sep-conv 3x3 building block.
+- The `B_op` cap on stacked deepens per stage, deepen-first heuristic (toggled off for CGSE so the critic chooses freely).
+- Function-preserving mutation initialisation (last BN γ zeroed → identity at insert).
+- Param-budget termination and final retrain phase.
+
+**What CGSE *replaces* (the contribution).**
+
+- The supervision signal for *weight* training: SEArch uses CE + λ·L_im (Eq. 4); CGSE uses pure CE → **0 teacher forwards**.
+- The signal for *structural* decisions: SEArch uses MV(n) = D(n)·deg+/deg- (Eq. 5) requiring teacher-side feature alignment; CGSE uses a learned policy over (stage, op) pairs trained via REINFORCE on Δval.
+- Mutation cadence: SEArch's stage cadence (10 epochs/stage in the paper, 8 here); CGSE's high-frequency cadence (4 epochs/stage in our config) yields 5–10× more decision points across the same total epoch budget, so structural change is genuinely *self-evolving* rather than teacher-clocked.
+
+**What CGSE *adds on top* (designed to close the gap to SEArch's locality / variance advantage).**
+
+| Addition | What it gives the critic | Why SEArch already had this implicitly |
+|----------|--------------------------|-----------------------------------------|
+| **Student probe** (`critics/student_probe.py`): per-stage `act_var_ratio` (top-1 PC variance ÷ trace(Σ) of the channel covariance — *unsupervised analogue of D(n)*), `grad_l2`, `weight_delta_since_last_mutation`. Concatenated into the per-candidate local descriptor (5-dim → 8-dim). | A direct bottleneck signal sourced from the student alone — the critic finally sees *which* stage is collapsing onto a few directions, not just *how often* to mutate. | SEArch's MV(n) is exactly this kind of "where is the feature representation furthest from the target" signal; we recover it without a teacher reference. |
+| **REINFORCE baseline** (EMA over past rewards, subtracted from R before the policy gradient). | Gradient variance on sparse Δval rewards drops sharply, so the critic actually learns a stable policy instead of drifting on noise. | SEArch never needed this — its decision rule is deterministic argmax over teacher-derived MV, so it has no policy gradient to stabilise. |
+
+These additions are **CGSE-only by design**: the SEArch arm's selector is the deterministic teacher-MV argmax (no policy, no probe). Both are toggled by `searh.use_student_probe` and `searh.baseline_momentum` so the paper can include the natural ablation grid:
+
+| Arm | Loss | Selector | Probe | Baseline |
+|-----|------|----------|-------|----------|
+| SEArch (paper-faithful) | CE + λ·L_im | teacher MV | n/a | n/a |
+| CGSE base | CE | critic | off | off |
+| CGSE + baseline | CE | critic | off | on |
+| CGSE + probe | CE | critic | on | off |
+| **CGSE full** | CE | critic | on | on |
+
+The first three rows isolate the effect of each addition; the last is the headline arm.
 
 **Implication.** Two publication strategies:
 

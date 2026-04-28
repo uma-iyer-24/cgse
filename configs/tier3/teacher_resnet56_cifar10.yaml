@@ -1,0 +1,49 @@
+# Tier 3 — paper-faithful teacher (ResNet-56 on CIFAR-10, 100 epochs).
+#
+# Stronger and longer-trained than Tier 2's teacher (which was 50 ep). The
+# Tier 3 SEArch arm uses channel-space attention KD over the teacher's
+# stage features (Eqs. 1-5), and a stronger teacher gives sharper
+# attention maps + cleaner modification-value signals at every stage.
+# Trained ONCE; the resulting checkpoint is shared by every student-arm
+# seed in Tier 3.
+experiment:
+  name: tier3_teacher_resnet56_cifar10
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 100
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: multistep
+    milestones: [50, 80]
+    gamma: 0.1
+  log_csv: runs_paper/tier3/metrics/tier3_teacher_resnet56_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 56
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: false
+
+critic:
+  enabled: false

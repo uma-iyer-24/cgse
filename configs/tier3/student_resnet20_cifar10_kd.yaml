@@ -1,0 +1,54 @@
+# Tier 3 — Student KD baseline (ResNet-20, logit KD against ResNet-56, 50 epochs).
+#
+# Role in paper: isolates the KD contribution from the architectural-search
+# contribution. With the same fixed ResNet-20 backbone as Student CE but
+# with the teacher turned on, this row tells us how much accuracy comes
+# from KD alone, leaving the SEArch / CGSE arms to attribute their gains
+# to structural growth on top of (or in place of) KD.
+experiment:
+  name: tier3_student_resnet20_cifar10_kd
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: multistep
+    milestones: [25, 40]
+    gamma: 0.1
+  log_csv: runs_paper/tier3/metrics/tier3_student_resnet20_kd_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+  teacher_depth: 56
+
+device: auto
+
+teacher:
+  enabled: true
+  checkpoint: checkpoints/tier3/tier3_teacher_resnet56_cifar10.pt
+  depth: 56
+  base_width: 16
+  temperature: 4.0
+  alpha: 0.5
+
+mutation:
+  enabled: false
+
+critic:
+  enabled: false

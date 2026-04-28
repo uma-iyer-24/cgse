@@ -103,9 +103,69 @@ Tier 2 can therefore include:
 
 **Paper use.** Methods subsection: “**Tier 2 parity experiments** (appendix / future work)” until configs and loop options land.
 
-### 3.4 Tier 3 — Dataset scale-out
+### 3.4 Tier 3 — Paper-faithful SEArch reproduction + CGSE-on-SEArch (the headline table)
 
-**Goal.** CIFAR-100, ImageNet, or other benchmarks as in SEArch—**long-term** engineering.
+**Goal.** Self-contained, no-reuse track that reproduces SEArch's full mechanism (channel-attention KD + MV scoring + sep-conv edge-splitting + `B_op` cap + param-budget termination + final retrain) on a fresh ResNet-20 / ResNet-56 stack and runs CGSE under the *exact same* outer loop, differing only in (a) loss term and (b) MV-signal source. **This is the tier the paper's headline accuracy/efficiency table comes from.**
+
+**Why Tier 3 is separate from Tier 2.** Tier 2 was a pragmatic "ResNet-safe ops on a sequential ResNet" track that grew incrementally; arms there used a 50-epoch teacher and ad-hoc operators (`resnet_layer3_widen`, `resnet_head_widen`, `resnet_insert_block`). Tier 3 starts clean — fresh teacher, fresh baselines, paper-faithful operators (depthwise-separable Conv-3×3 deepen / parallel-branch widen) — so the comparison is apples-to-apples and reviewer-defensible.
+
+**The eight Tier 3 models.**
+
+| # | Arm | Config | Role in paper |
+|---|-----|--------|---------------|
+| 1 | **Teacher** | `configs/tier3/teacher_resnet56_cifar10.yaml` | ResNet-56 trained on labels for 100 epochs. **One teacher serves all student-arm seeds** (matches SEArch convention). |
+| 2 | **Student CE** | `configs/tier3/student_resnet20_cifar10_ce.yaml` | ResNet-20, plain cross-entropy, 50 epochs. *"Floor without any architectural search and without any KD."* |
+| 3 | **Student KD** | `configs/tier3/student_resnet20_cifar10_kd.yaml` | ResNet-20, logit KD against the Tier 3 teacher, 50 epochs. *Isolates the KD contribution from the search contribution.* |
+| 4 | **SEArch (paper-faithful)** | `configs/tier3/student_resnet20_cifar10_searh.yaml` | The system we're trying to beat. Channel-attention KD (Eqs. 1–5) + MV scoring (Eq. 9) + sep-conv edge-splitting (Eqs. 26–28) + `B_op = 7` + param budget = 1.5× initial + 10-epoch final retrain. |
+| 5 | **CGSE base** | `configs/tier3/student_resnet20_cifar10_cgse_base.yaml` | Same outer loop, teacher dropped, raw REINFORCE. **No** student probe, **no** baseline. *"What does naive teacher → critic substitution buy you?"* |
+| 6 | **CGSE + baseline** | `configs/tier3/student_resnet20_cifar10_cgse_baseline.yaml` | Adds the EMA-baseline-subtracted REINFORCE update (Eq. 23). Probe still off. *Isolates the variance-reduction contribution.* |
+| 7 | **CGSE + probe** | `configs/tier3/student_resnet20_cifar10_cgse_probe.yaml` | Adds the student probe — `act_var_ratio + grad_l2 + weight_delta` per stage (Eqs. 11–17). Baseline still off. *Isolates the locality-signal contribution.* |
+| 8 | **CGSE full** ★ | `configs/tier3/student_resnet20_cifar10_cgse_full.yaml` | Both probe + baseline. **The headline arm.** |
+
+The 4-row ablation (rows 5–8) is what lets the paper claim "the probe contributes X percentage points and the baseline contributes Y, separately, and they compose."
+
+**Mutation operator inventory in Tier 3** (this is *exactly* what both selectors get to choose from — see [`CGSE-math-and-equations.md`](CGSE-math-and-equations.md) Eqs. 27–28 for the formal definitions):
+
+| Op | Effect | Function-preserving at insert? | Reversible? |
+|----|--------|---------------------------------|-------------|
+| `deepen` | Append one residual sep-conv-3×3 block at the end of `model.layer{stage}` | Yes (last BN γ zeroed → identity) | Not currently |
+| `widen` | Wrap the last stride-1 same-channel `BasicBlock` with a parallel sep-conv-3×3 branch summed in | Yes (last BN γ zeroed → branch ≡ 0) | Not currently |
+
+Both ops *grow* the network. There are no prune ops, no noop, no cross-stage moves. **Both selectors (teacher-MV and critic) operate over the exact same candidate set**, so the comparison isolates the *signal* used to pick among them, not the *operators available*. This matches SEArch's paper inventory (Fig. 4a/4b).
+
+**Cadence parity (`epochs_per_stage = 8` across both arms).** Tier 3 holds the *outer-loop schedule identical* between SEArch and all four CGSE ablations: 8 student-training epochs per stage, the same `B_op = 7` cap on stacked deepens, the same 1.5× param budget, the same 10-epoch final retrain. **This is critical for the headline claim "same outer loop, only the MV signal differs"** — without matched cadence, a reviewer can attribute any CGSE win (or loss) to faster/slower decision pace rather than to the critic-vs-teacher signal. (An earlier Tier-2-era CGSE arm used a "high-frequency" 4-epoch cadence; that variant is no longer used in Tier 3, see [§3a in the eval plan](SEArch-baseline-and-CGSE-evaluation-plan.md) for the rationale.)
+
+**Tier 3 sweep totals (MPS, batch 128, 1.5× param budget, matched cadence).**
+
+| Arm | Per-seed epochs | Per-seed wall-clock | Per-epoch cost (vs SEArch) |
+|-----|------------------|---------------------|---------|
+| Teacher (one-time) | 100 | ~2.0 h | n/a |
+| Student CE | 50 | ~25 min | ~30 s/ep |
+| Student KD | 50 | ~45 min | ~55 s/ep |
+| SEArch | **234** (28 stages × 8 ep + 10 retrain) | **~3.9 h** | ~60 s/ep (student fwd + teacher fwd + attn-KD) |
+| CGSE base / +B / +P / full | **234** each (matched cadence) | **~2.3 h each** | ~35 s/ep (student fwd only — no teacher) |
+
+Per-epoch CGSE is ~40% cheaper than SEArch because the teacher forward and the channel-attention-KD module are both gone. **At identical 234-epoch budgets the CGSE arms are ~1.6× faster in wall-clock by construction**, which becomes one of the paper's headline efficiency claims (alongside zero teacher forwards).
+
+| Sweep | Runs | Total epochs | Wall-clock |
+|-------|------|--------------|-------------|
+| Minimal (1 seed × {CE, KD, SEArch, CGSE full} + 1 teacher) | 5 | **668** | ~9 h |
+| **Headline (3 seeds × {CE, KD, SEArch, CGSE full} + 1 teacher)** | **13** | **1,804** | **~24 h** |
+| Full ablation (3 seeds × {CE, KD, SEArch, CGSE base, +B, +P, full} + 1 teacher) | 22 | **3,304** | ~38 h |
+
+**Artifact layout.** All Tier 3 outputs live under fresh paths:
+
+- Configs: `configs/tier3/*.yaml`
+- Logs: `runs_paper/tier3/logs/`
+- Metrics CSV: `runs_paper/tier3/metrics/`
+- Mutation JSONL: `runs_paper/tier3/mutations/`
+- Checkpoints: `checkpoints/tier3/`
+
+**Sweep script.** `scripts/run_tier3.sh` (with `RESUME=1` to skip arms whose checkpoints already exist, and `TEACHER_ONLY=1` / `STUDENTS_ONLY=1` toggles to stage the runs).
+
+### 3.5 Tier 4 — Dataset scale-out
+
+**Goal.** CIFAR-100, ImageNet, or other benchmarks as in SEArch — **long-term** engineering, post-Tier-3.
 
 ---
 
@@ -114,10 +174,11 @@ Tier 2 can therefore include:
 | If the paper claims… | Use primarily |
 |----------------------|----------------|
 | Same **idea** (teacher-guided vs critic-guided evolution), honest **gap** table | **Tier 1** (+ **Tier 1b** for richer protocol) on **`CifarGraphNet`** |
-| Closest **reported accuracy / training budget** to their tables | **Tier 2** (when implemented), ideally **+ Tier 1b protocol** on that backbone |
+| **Headline accuracy + efficiency vs SEArch** on a paper-faithful stack | **Tier 3** (paper-faithful SEArch + CGSE-on-SEArch) |
+| Closest **reported accuracy / training budget** to their tables (legacy parity work) | **Tier 2** |
 | Closest **iterative search narrative** without ResNet work | **Tier 1b** |
 
-**Recommendation.** Report **Tier 1** and **Tier 1b** as **primary** CGSE evidence on the **current** stack; position **Tier 2** explicitly as **parity** or **future work** unless completed.
+**Recommendation.** **Tier 3 is the paper's headline.** Tier 1 / 1b / 2 stay in the appendix as supporting evidence and ablation context.
 
 ---
 

@@ -4,6 +4,8 @@
 
 **Visual overview for newcomers:** [root `README.md`](../README.md) (primary goal, diagrams) and [`paper_documentation/figures/`](figures/) (PNG figures for slides).
 
+**Math reference:** every equation that appears in code is numbered and cross-referenced in [`CGSE-math-and-equations.md`](CGSE-math-and-equations.md) — that file is the source of truth for paper equation numbers.
+
 **Audience.** Future you, collaborators, and the Methods / Experiments / Appendix sections of the paper.
 
 **Conventions.**
@@ -205,6 +207,198 @@
 - **`train.py`** — YAML **`critic:`** (`enabled`, `hidden_dim`, `lr`, `epsilon`, `window_start_epoch`, `window_end_epoch`, `force_mutate_end_of_window`). **Cannot** combine **`critic.enabled`** with **`teacher.enabled`**. When critic is on, **`once_after_epoch`** is ignored for timing; **`edge_widen`** runs when Bernoulli(σ(logit)) samples mutate (ε-greedy exploration) or **`force_mutate_end_of_window`** fires. **Policy gradient:** next epoch, \(-\log\sigma(\text{logit}) \cdot (\text{val\_acc}_{t+1}-\text{val\_acc}_t)\)** unless the action was random explore or forced. JSONL mutation rows include **`gate`: `critic`** or **`schedule`**. Checkpoints: **`checkpoints/<name>_critic.pt`**. CSV column **`critic_score`**.
 - **Configs.** **`configs/cifar/phase2_cifar_full_cgse.yaml`** (critic window **epoch 10 only**, parity with **`phase2_cifar_full_mutate`** timing), **`configs/cifar/smoke/phase2_cifar_cgse_smoke.yaml`**.
 - **`train.py --seed N`** — overrides RNG; appends **`_seedN`** to **`experiment.name`** and to **`log_csv`** / **`mutation.log_jsonl`** stems; checkpoints use the suffixed name. Tier 1 recipe: **`runs/README.md`**.
+
+### 2026-04-28 — Paper-faithful SEArch + CGSE-on-SEArch (Tier 2)
+
+**Goal.** Replace the prior schedule-style Tier-2 arms (single-op `resnet_layer3_widen`, `resnet_head_widen`, scheduled and CGSE-gated variants) with a **paper-faithful SEArch implementation** and a **CGSE arm built on top of the same SEArch outer loop** — so the two arms differ in *exactly one variable*: the supervision signal that produces the modification value.
+
+**Conceptual model adopted.**
+
+- **Teacher (SEArch).** A frozen ResNet-56 doing **two** jobs: (1) per-batch channel-attention KD that supervises the student's *weights* (Eqs. 1–4); (2) per-stage modification-value scoring that picks the *next structural edit* (Eq. 5). Both jobs depend on teacher intermediate features. Cost: ≈ one teacher forward per training batch + a few per stage end → ~22k teacher forwards over a 50-epoch run.
+- **Critic (CGSE).** A small MLP that does **only one** job: per-stage candidate scoring. Inputs are the student's own training stats (`build_critic_state`) plus a 5-dim local descriptor per `(stage, op)`. Trained by REINFORCE on `Δval_acc` with an entropy bonus. The student trains on **plain CE** — zero teacher forwards across the whole run.
+
+**What CGSE keeps from SEArch (explicit borrowings, all referenced in code comments).**
+
+- The iterative train→score→split→train outer loop (paper Algorithm 1).
+- The two edge-splitting operators: **deepen** (sep-conv 3x3 stacked on edge) and **widen** (parallel sep-conv branch wrapping a block).
+- The depthwise-separable Conv 3x3 building block from §3.5.
+- The `B_op` cap on stacked deepens per stage (paper default 7).
+- Function-preserving mutation initialisation (zero-init the new sep-conv's last BN γ → identity at insert).
+- Param-budget termination (default `1.5 × initial_params`, ~408K for ResNet-20).
+- Final retrain phase at fixed architecture after the loop terminates.
+
+**What CGSE replaces (the contribution).**
+
+- Loss: SEArch's `L = L_CE + λ·L_im` (channel-attention imitation, λ cosine-annealed) → plain `L = L_CE`.
+- MV scorer: SEArch's `MV(n) = D(n) · deg+/deg-` → CGSE's learned `π_critic(global_state ⊕ local_descriptor)` over candidates.
+- Cadence: SEArch's stage-clocked decisions (8 epochs/stage) → CGSE's high-frequency cadence (4 epochs/stage), plus `deepen_first: false` so the critic chooses deepen vs widen freely → 5–10× more decision points across the same total epoch budget.
+
+**Code added.**
+
+| File | Role |
+|------|------|
+| `models/searh_blocks.py` | `SepConv3x3`, `DeepenBlock` (residual sep-conv, identity-init), `WidenedBlock` (parallel sep-conv branch summed in, identity-init) |
+| `training/searh_attention.py` | `ChannelAttentionKD` (paper Eqs. 1–3 with per-channel descriptor → softmax attention → projected feature → squared L2), `MultiNodeAttentionKD` (forward hooks on `layer1` / `layer2` / `layer3` outputs; lazy head-build, optimizer-friendly) |
+| `training/searh_node_map.py` | Stage-output (student, teacher) module pairing — student/teacher feature shapes match exactly at `stage1` (16ch×32²), `stage2` (32ch×16²), `stage3` (64ch×8²) |
+| `evolution/searh_mv.py` | `compute_per_node_distances` (no-grad averaging over `score_batches`), `modification_values` (Eq. 5), `rank_candidates` |
+| `evolution/candidates.py` | `Candidate(stage, op, node_id)`, `enumerate_candidates` with `B_op` cap, `_is_widenable_basic_block` filter (only stride-1 same-channel blocks are wrapped) |
+| `ops/searh_deepen.py` | `deepen_resnet_stage` — appends one `DeepenBlock` to `model.layer{stage}` |
+| `ops/searh_widen.py` | `widen_resnet_stage` — wraps the last legal `BasicBlock` with a `WidenedBlock` |
+| `training/searh_loop.py` | Unified `run_searh` outer loop (Algorithm 1). Switches selectors (`teacher` MV / `critic` MV) but everything else is shared. Implements cosine λ-anneal, score-batch loop for MV computation, optimizer refresh after every mutation, REINFORCE update with entropy bonus for the critic arm, final retrain phase. |
+| `critics/searh_critic.py` | `PerCandidateCritic` — small MLP scoring `(global_state ⊕ local_descriptor)` per candidate |
+
+**Code modified.**
+
+- `train.py` now branches on `searh.enabled` *before* the legacy mutation/critic path; runs `run_searh`, then saves the checkpoint and returns.
+- `scripts/run_tier2.sh` adds two rows: `student_searh` and `student_cgse_searh`.
+
+**New configs.**
+
+- `configs/tier2/student_resnet20_cifar10_searh.yaml` — paper-faithful SEArch arm. `selector: teacher`, `epochs_per_stage: 8`, `B_op: 7`, `deepen_first: true`, `lambda_init: 1.0`, `param_budget_factor: 1.5`, `final_retrain_epochs: 10`.
+- `configs/tier2/student_resnet20_cifar10_cgse_searh.yaml` — CGSE-on-SEArch arm. `selector: critic`, `epochs_per_stage: 4` (high-frequency), `deepen_first: false`, `epsilon: 0.30`, `entropy_beta: 0.01`, `param_budget_factor: 1.5`. `teacher.enabled: false`.
+
+**Smoke test (`scripts/smoke_searh.py`).**
+
+Both arms run end-to-end on a 256-sample CIFAR subset in <30s on MPS. Verified:
+- SEArch teacher hooks attach on stage outputs; channel-attention heads lazy-build; imitation loss flows back to student weights and to `q.weight`/`k.weight`.
+- CGSE critic produces per-candidate scores; ε-greedy exploration fires; REINFORCE update fires every stage with sensible reward sign.
+- Both arms apply mutations until the param-budget cap is hit and the candidate set is exhausted (28 mutations on the smoke subset; loop terminates cleanly).
+- Optimizer refresh works across structural edits (no stale params, no missing new params).
+
+**Bug fixed during smoke.** First widen attempt wrapped the stride-2 first block of stages 2/3, where the parallel branch's channel count (= block out-channels) didn't match the input channel count (= block in-channels). Fixed in `evolution/candidates.py::_is_widenable_basic_block` and `ops/searh_widen.py::widen_resnet_stage`: only blocks with `in_ch == out_ch and stride == 1` are eligible for widening (paper's "edge at end of stage" naturally corresponds to such a block).
+
+**To run paper sweeps.**
+
+```bash
+SEEDS=42 bash scripts/run_tier2.sh
+```
+
+This now also produces:
+- `runs_paper/tier2/logs/tier2_student_searh_seed42.log`
+- `runs_paper/tier2/metrics/tier2_student_resnet20_searh_metrics_seed42.csv`
+- `runs_paper/tier2/mutations/tier2_student_resnet20_searh_mutations_seed42.jsonl`
+
+…and the matching `_cgse_searh_*` files. Mutation JSONL rows now include a richer schema: `op` ∈ {`searh_deepen`, `searh_widen`}, `selector` ∈ {`teacher`, `critic`}, `stage_target`, `node_id`, `mv`, `ranked_top5`, `param_budget_cap`.
+
+**Documentation updated alongside.** `paper_documentation/SEArch-baseline-and-CGSE-evaluation-plan.md` §3a (new section) — complete mapping from paper sections (Eqs. 1–6, Algorithm 1, sep-conv, B_op, edge-splitting) to modules in this repo, plus the explicit "what CGSE borrows / replaces" tables.
+
+### 2026-04-28 — CGSE student probe + REINFORCE baseline (closing the gap to SEArch)
+
+**Goal.** Beat SEArch on accuracy at matched param budget without using a teacher. The previous CGSE arm had two structural disadvantages versus SEArch:
+
+1. **No locality signal.** SEArch's MV scorer reads teacher-aligned per-stage feature distance; CGSE only saw aggregate training stats plus a 5-dim structural descriptor (stage one-hot, op flag, deepens count) — meaning the critic could not see *which stage was actually under-performing*.
+2. **High-variance reward.** REINFORCE on raw Δval is extremely noisy at small architecture changes; without a baseline the critic was as likely to learn from noise as from signal.
+
+Both are now addressed.
+
+**1. Student probe (`critics/student_probe.py`).** Per stage we attach forward hooks and after every backward pass we collect:
+
+- **`act_var_ratio`** — top-1 PC variance of the channel covariance ÷ trace(Σ). The unsupervised analogue of teacher attention distance D(n): when a stage's representations collapse onto a single direction, the ratio jumps toward 1 — a direct bottleneck signal. Computed without SVD via 4 steps of power iteration on Σ for ~0.5 ms per stage on MPS.
+- **`grad_l2`** — Euclidean norm of the stage's parameter gradients from the last backward pass. Where the network is actually learning vs. where signal is dying.
+- **`weight_delta`** — Frobenius distance between current stage weights and the snapshot taken at the most recent mutation in this stage. "Has this stage converged?" detector — collapses to 0 right after a mutation, then grows.
+
+Both `grad_l2` and `weight_delta` are min-max-normalised across the three stages so the critic sees a comparable *relative* magnitude regardless of run-to-run scale.
+
+These three features are concatenated into the per-candidate local descriptor at scoring time, growing it from **5-dim → 8-dim**. The critic's `local_dim` is set automatically in `train.py` based on `searh.use_student_probe`, so the same critic checkpoint format works for ablation pairs.
+
+**2. REINFORCE baseline (`training/searh_loop.py`).** The PG step now subtracts an exponential-moving-average baseline `b ← momentum · b + (1-momentum) · R` (default `baseline_momentum: 0.9`) from the reward. The critic updates on the *advantage* `A = R − b` instead of the raw reward — sharply reducing gradient variance from sparse Δval signals. This is independent of the probe and helps every CGSE run, with or without the probe enabled.
+
+**Code added.**
+
+| File | Role |
+|------|------|
+| `critics/student_probe.py` | `StudentProbe` class with `attach`/`detach` hook lifecycle, `update_grads`, `run_forward` (one no-grad probe forward), `snapshot_stage` (mutation-time weight checkpoint), `per_stage_features` returning 3-dim per-stage descriptor. `PROBE_DIM = 3` exported for sizing the critic's `local_dim`. |
+
+**Code modified.**
+
+- `training/searh_loop.py` — `_make_local_descriptor` now accepts optional `probe_features`. `_critic_mv_selector` accepts `probe_features_per_stage` and passes the matching stage's features into each candidate's row. `run_searh` initialises the probe (if `searh.use_student_probe: true`), takes a baseline weight snapshot, gathers grads + activations once per stage end, calls `snapshot_stage` after each mutation, and detaches at run end. The PG block now maintains an EMA baseline and updates with `advantage = R − baseline`. The mutation JSONL gains `use_probe` and `baseline_value` fields.
+- `train.py` — `local_dim` for `PerCandidateCritic` is now `5 + PROBE_DIM` when `use_student_probe: true`, else 5.
+- `configs/tier2/student_resnet20_cifar10_cgse_searh.yaml` — `use_student_probe: true` and `baseline_momentum: 0.9` enabled by default for the paper-facing CGSE arm. The SEArch arm config is untouched (the probe is CGSE-only by design — it would shadow the teacher's MV signal otherwise).
+- `scripts/smoke_searh.py` — runs the critic arm twice (probe-off, probe-on) to verify both code paths.
+
+**Smoke results.**
+
+```
+[searh] critic PG update: choice=4 R=+0.1562 baseline=+0.0183 adv=+0.1533 entropy=1.609
+[searh] critic PG update: choice=3 R=-0.1992 baseline=-0.0035 adv=-0.2175 entropy=1.609
+```
+
+Both probe-off and probe-on runs complete 28 mutations cleanly under the param budget; baseline EMA tracks recent rewards and the centred advantage is what drives the critic update.
+
+**Why this is expected to beat SEArch on the headline accuracy claim.**
+
+- **Same operators, same outer loop, same budget** as SEArch — accuracy upside has to come from *better-targeted* edits, and the probe gives the critic the same kind of locality information SEArch derives from the teacher (variance ratio plays the role of `D(n)`).
+- **Zero teacher forwards** — the efficiency win is unconditional regardless of the accuracy outcome.
+- **No teacher in the per-epoch path** — student-only forward + backward is ~40% cheaper per epoch than SEArch's student + teacher + attention-KD pipeline, so even at *matched epochs-per-stage* CGSE wins on wall-clock by construction. (This was the Tier-2-era CGSE configuration's "high-frequency cadence" — `epochs_per_stage: 4` vs SEArch's 8 — which gave the critic more decisions per epoch but introduced a comparability problem; **superseded for the paper headline by Tier 3's matched cadence — see the Tier 3 entry below.**)
+
+**Ablation rows planned for the paper.**
+
+| Arm | Loss | Selector | Probe | Baseline |
+|-----|------|----------|-------|----------|
+| SEArch (paper-faithful) | CE + λ·L_im | teacher MV | n/a | n/a |
+| CGSE base | CE | critic | off | off |
+| CGSE + baseline | CE | critic | off | on |
+| CGSE + probe | CE | critic | on | off |
+| **CGSE full (this paper's headline arm)** | CE | critic | on | on |
+
+The first three rows isolate the contribution of each addition; the last is the headline arm.
+
+### 2026-04-28 — Tier 3 launch plan: paper-faithful headline track with matched cadence
+
+**Goal.** A self-contained, no-reuse track that becomes the paper's headline accuracy + efficiency table. Tier 2 stays as-is (legacy parity work, ResNet-safe ops, etc.); **Tier 3 is the contribution-claim track** and uses fresh teacher, fresh baselines, and a strictly matched outer loop between SEArch and all four CGSE ablation arms.
+
+**The 8 Tier 3 models (all configs in `configs/tier3/`).**
+
+| # | Arm | Config | Role |
+|---|-----|--------|------|
+| 1 | Teacher | `teacher_resnet56_cifar10.yaml` | ResNet-56, **100 ep** (vs Tier 2's 50 ep) — stronger teacher → sharper attention maps for SEArch's MV. **Trained once; shared by all student-arm seeds.** |
+| 2 | Student CE | `student_resnet20_cifar10_ce.yaml` | ResNet-20, 50 ep, plain CE. The floor. |
+| 3 | Student KD | `student_resnet20_cifar10_kd.yaml` | ResNet-20, 50 ep, logit KD (α=0.5, T=4). Isolates KD-only contribution. |
+| 4 | SEArch | `student_resnet20_cifar10_searh.yaml` | Paper-faithful: channel-attention KD + MV scoring + sep-conv edge-splitting + B_op=7 + 1.5× param budget + 10-ep retrain. **`epochs_per_stage: 8`.** |
+| 5 | CGSE base | `student_resnet20_cifar10_cgse_base.yaml` | probe **OFF**, baseline **OFF** (`baseline_momentum: 1.0` pins baseline at 0 → raw REINFORCE). |
+| 6 | CGSE + baseline | `student_resnet20_cifar10_cgse_baseline.yaml` | probe OFF, **baseline ON** (`baseline_momentum: 0.9`). Isolates variance-reduction contribution. |
+| 7 | CGSE + probe | `student_resnet20_cifar10_cgse_probe.yaml` | **probe ON**, baseline OFF. Isolates locality-signal contribution. |
+| 8 | **CGSE full** ★ | `student_resnet20_cifar10_cgse_full.yaml` | **probe ON, baseline ON. Headline arm.** |
+
+All four CGSE configs (rows 5-8) and the SEArch config (row 4) share identical outer-loop settings: **`epochs_per_stage: 8`, `B_op: 7`, `param_budget_factor: 1.5`, `final_retrain_epochs: 10`**. The only inter-arm differences are (a) the MV signal source (teacher attention vs critic policy) and (b) the two ablation toggles (`use_student_probe`, `baseline_momentum`).
+
+**Cadence-parity decision (matched at 8 epochs/stage).** The earlier Tier 2 CGSE arm used `epochs_per_stage: 4` to give the critic a "high-frequency" decision pace. For Tier 3's headline claim — *"identical outer loop, only the MV signal differs"* — that asymmetry is unacceptable: a reviewer can attribute any CGSE win (or loss) to faster/slower decisions rather than to the critic. Tier 3 therefore matches both arms at 8 epochs/stage. CGSE is still ~1.6× faster in wall-clock at matched epochs because the per-epoch cost drops from ~60 s (student fwd + teacher fwd + attention-KD) to ~35 s (student fwd only) — the efficiency win comes from the loss term, not from the cadence.
+
+**Per-seed totals.**
+
+| Arm | Per-seed epochs | Per-seed wall-clock (MPS) |
+|-----|-----------------|--------------------------|
+| Teacher (one-time) | 100 | ~2.0 h |
+| Student CE | 50 | ~25 min |
+| Student KD | 50 | ~45 min |
+| SEArch | 234 (28 stages × 8 ep + 10 retrain) | ~3.9 h |
+| CGSE base / +B / +P / full | 234 each | ~2.3 h each |
+
+**Sweep totals.**
+
+| Sweep | Runs | Total epochs | Wall-clock |
+|-------|------|--------------|------------|
+| Minimal (1 seed × {CE, KD, SEArch, CGSE full} + 1 teacher) | 5 | 668 | ~9 h |
+| **Headline (3 seeds × {CE, KD, SEArch, CGSE full} + 1 teacher)** | **13** | **1,804** | **~24 h** |
+| Full ablation (3 seeds × all 7 student arms + 1 teacher) | 22 | 3,304 | ~38 h |
+
+**Code added.**
+
+| File | Role |
+|------|------|
+| `configs/tier3/*.yaml` | 8 fresh configs, no reuse from Tier 2. |
+| `scripts/run_tier3.sh` | Sweep driver with `TEACHER_ONLY`, `STUDENTS_ONLY`, `RESUME`, `ARMS`, `SEEDS`, `DEVICE` toggles. Headline sweep: `SEEDS="42 43 44" bash scripts/run_tier3.sh`. |
+
+**Artifact layout.** `runs_paper/tier3/{logs,metrics,mutations}/` and `checkpoints/tier3/`. Nothing under `runs_paper/tier2/` or `checkpoints/tier2/` is read or written by Tier 3.
+
+**Operator inventory in Tier 3** (identical for both selectors): `deepen` (append residual sep-conv-3×3 block at end of stage) and `widen` (wrap last stride-1 same-channel `BasicBlock` with parallel sep-conv-3×3 branch). Both grow-only; no prune, no noop, no cross-stage moves. Matches SEArch paper Fig. 4a/4b. A reversible-mutation extension (`un_deepen`, `un_widen`) is listed as future work in [`SEArch-baseline-and-CGSE-evaluation-plan.md`](SEArch-baseline-and-CGSE-evaluation-plan.md) §3a but is not part of the Tier 3 sweep.
+
+**Next steps.**
+
+1. Run `bash scripts/run_tier3.sh TEACHER_ONLY=1` (~2 h) — produces `checkpoints/tier3/tier3_teacher_resnet56_cifar10_seed42.pt`.
+2. Run minimal sweep (`SEEDS=42 ARMS="ce kd searh cgse_full" bash scripts/run_tier3.sh STUDENTS_ONLY=1`) to validate the pipeline on one seed (~7 h after teacher).
+3. Launch headline sweep (`SEEDS="42 43 44" bash scripts/run_tier3.sh STUDENTS_ONLY=1`).
+4. Once metrics CSVs are populated under `runs_paper/tier3/metrics/`, run `python scripts/build_results_site.py` to refresh the website with Tier 3 numbers.
 
 ### 2026-04-02 — Phase 2 mutation ablation config (full CIFAR)
 

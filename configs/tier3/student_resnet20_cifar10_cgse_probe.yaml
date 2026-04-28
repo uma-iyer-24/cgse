@@ -1,0 +1,75 @@
+# Tier 3 — CGSE + probe (probe ON, baseline OFF). Ablation row 3 of 4.
+#
+# Role in paper: isolates the contribution of the per-stage student probe
+# (act_var_ratio + grad_l2 + weight_delta, Eqs. 11-17) from CGSE base.
+# Baseline is still off (raw REINFORCE), so any improvement over CGSE
+# base is attributable purely to the locality signal in the critic's
+# input, not to gradient-variance reduction.
+#
+# The probe is the unsupervised analogue of teacher attention distance
+# D(n): when a stage's representations collapse onto a few directions
+# the activation variance ratio jumps toward 1, giving the critic the
+# same "where is the bottleneck" information SEArch derives from the
+# teacher.
+#
+# epochs_per_stage = 8 matches SEArch and the other CGSE arms.
+experiment:
+  name: tier3_student_resnet20_cifar10_cgse_probe
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: none
+  log_csv: runs_paper/tier3/metrics/tier3_student_resnet20_cgse_probe_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: true
+  log_jsonl: runs_paper/tier3/mutations/tier3_student_resnet20_cgse_probe_mutations.jsonl
+
+critic:
+  enabled: false
+
+searh:
+  enabled: true
+  selector: critic
+  param_budget_factor: 1.5
+  epochs_per_stage: 8        # MATCHED to SEArch
+  B_op: 7
+  deepen_first: true
+  d_k: 64
+  hidden_dim: 64
+  critic_lr: 0.01
+  critic_weight_decay: 0.0
+  epsilon: 0.30
+  entropy_beta: 0.01
+  final_retrain_epochs: 10
+  max_epochs_hint: 234
+
+  # ----- Ablation toggles -----
+  use_student_probe: true    # ON: 3-dim per-stage descriptor injected into critic local input
+  baseline_momentum: 1.0     # OFF: raw REINFORCE
