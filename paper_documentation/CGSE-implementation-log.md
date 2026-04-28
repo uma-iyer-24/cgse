@@ -6,6 +6,8 @@
 
 **Math reference:** every equation that appears in code is numbered and cross-referenced in [`CGSE-math-and-equations.md`](CGSE-math-and-equations.md) — that file is the source of truth for paper equation numbers.
 
+**Technical deep-dive.** For the *how* behind every module of the SEArch + CGSE-on-SEArch system (channel-attention KD internals, candidate enumeration safety filters, function-preserving init, the unified outer loop, the per-candidate critic, student probe internals, REINFORCE with EMA baseline, optimizer-state preservation across mutations, YAML → code-path mapping, CSV / JSONL schemas, performance characteristics, gotchas, extension points), see [`CGSE-implementation-details.md`](CGSE-implementation-details.md).
+
 **Audience.** Future you, collaborators, and the Methods / Experiments / Appendix sections of the paper.
 
 **Conventions.**

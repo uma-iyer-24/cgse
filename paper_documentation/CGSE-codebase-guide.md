@@ -1,6 +1,6 @@
 # CGSE codebase guide
 
-**Purpose.** A **file-by-file** map of this repository so you can read it alongside the code and understand **what lives where**, **how data flows**, and **how pieces depend on each other**. This is the canonical “onboarding + deep dive” document for the implementation (complementary to `project-doc.pdf` for research narrative, `CGSE-implementation-log.md` for experiment history, and **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)** for a long-form phase-by-phase story with rationale).
+**Purpose.** A **file-by-file** map of this repository so you can read it alongside the code and understand **what lives where**, **how data flows**, and **how pieces depend on each other**. This is the canonical “onboarding + deep dive” document for the implementation (complementary to `project-doc.pdf` for research narrative, `CGSE-implementation-log.md` for experiment history, **[`CGSE-detailed-phase-walkthrough.md`](CGSE-detailed-phase-walkthrough.md)** for a long-form phase-by-phase story with rationale, and **[`CGSE-implementation-details.md`](CGSE-implementation-details.md)** for the deep technical walkthrough of the SEArch + CGSE-on-SEArch internals — channel-attention KD details, candidate-enumeration safety filters, function-preserving init, REINFORCE with EMA baseline, optimizer-state preservation, gotchas, and extension points).
 
 **How to maintain this document (important).**
 
