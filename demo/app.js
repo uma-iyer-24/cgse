@@ -83,6 +83,17 @@ class NetworkCanvas {
     this.mutPhase = "idle";
     this.mutLayer = -1;
     this._w = 0; this._h = 0;
+
+    // Pointer interaction: nodes are repelled by the cursor, brighten
+    // near it, and the four closest are connected to it by faint lines.
+    this.mouseX  = -9999;
+    this.mouseY  = -9999;
+    this.mouseInside = false;
+    this.MOUSE_R       = 150;   // radius of influence (px)
+    this.MOUSE_PUSH    = 30;    // max displacement (px) at the cursor
+    this.MOUSE_SMOOTH  = 110;   // ms half-life for spring-back
+    this.MOUSE_LINKS   = 4;     // # of nearest nodes connected to cursor
+
     this.MSGS = [
       "CRITIC: widen layer 2 →",
       "CRITIC: deepen layer 3 →",
@@ -91,6 +102,24 @@ class NetworkCanvas {
     ];
     this._onResize = () => this.resize();
     window.addEventListener("resize", this._onResize);
+
+    // Listen on the hero section (not the canvas) so the cursor is
+    // tracked even when it's over the headline / button overlay.
+    const hero = canvas.parentElement || canvas;
+    this._onMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      this.mouseX = cx - rect.left;
+      this.mouseY = cy - rect.top;
+      this.mouseInside = true;
+    };
+    this._onLeave = () => { this.mouseInside = false; };
+    hero.addEventListener("mousemove",  this._onMove,  { passive: true });
+    hero.addEventListener("mouseleave", this._onLeave, { passive: true });
+    hero.addEventListener("touchmove",  this._onMove,  { passive: true });
+    hero.addEventListener("touchend",   this._onLeave, { passive: true });
+
     this.resize();
   }
 
@@ -110,13 +139,17 @@ class NetworkCanvas {
   _buildNodes() {
     this.nodes = this.layers.map((count, li) => {
       const x = this._w * (li + 1) / (this.layers.length + 1);
-      return Array.from({ length: count }, (_, ni) => ({
-        x, y: this._h * (ni + 1) / (count + 1),
-        r: 5,
-        phase:  Math.random() * Math.PI * 2,
-        speed:  0.8 + Math.random() * 0.4,
-        emerge: false, ep: 1.0,
-      }));
+      return Array.from({ length: count }, (_, ni) => {
+        const ry = this._h * (ni + 1) / (count + 1);
+        return {
+          x, y: ry,
+          rx: x, ry,                       // resting layout position
+          r: 5,
+          phase:  Math.random() * Math.PI * 2,
+          speed:  0.8 + Math.random() * 0.4,
+          emerge: false, ep: 1.0,
+        };
+      });
     });
   }
 
@@ -133,15 +166,18 @@ class NetworkCanvas {
     const next = Math.min(prev + add, 10);
     this.layers[li] = next;
     const x = this._w * (li + 1) / (this.layers.length + 1);
-    this.nodes[li] = Array.from({ length: next }, (_, ni) => ({
-      x, y: this._h * (ni + 1) / (next + 1),
-      r: 5, phase: Math.random() * Math.PI * 2,
-      speed: 0.8 + Math.random() * 0.4,
-      emerge: ni >= prev,
-      ep: ni >= prev ? 0.0 : 1.0,
-    }));
+    this.nodes[li] = Array.from({ length: next }, (_, ni) => {
+      const ry = this._h * (ni + 1) / (next + 1);
+      return {
+        x, y: ry,
+        rx: x, ry,
+        r: 5, phase: Math.random() * Math.PI * 2,
+        speed: 0.8 + Math.random() * 0.4,
+        emerge: ni >= prev,
+        ep: ni >= prev ? 0.0 : 1.0,
+      };
+    });
     this.mutPhase = "idle";
-    // Reset to prevent indefinite growth
     if (this.layers.some(l => l > 9)) this.layers = [3, 5, 6, 4, 3];
   }
 
@@ -157,8 +193,48 @@ class NetworkCanvas {
       if (idx < 2) setTimeout(() => this._doMutation(), 700);
       else         setTimeout(() => { this.mutPhase = "idle"; }, 700);
     }
+
+    // Pointer-driven displacement: each node has a target (tx, ty) =
+    // its rest position pushed away from the cursor when the cursor
+    // is inside the influence radius. Then x/y are smoothed toward
+    // the target so the motion is springy, not jittery.
+    const k = 1 - Math.exp(-dt / this.MOUSE_SMOOTH);
+    const mx = this.mouseX, my = this.mouseY, R = this.MOUSE_R;
+    const inside = this.mouseInside;
+    let bestNode = null, bestDist = Infinity;
     this.nodes.forEach(layer => layer.forEach(n => {
+      let tx = n.rx, ty = n.ry;
+      n.proximity = 0;
+      n.hovered = false;
+      if (inside) {
+        const dx = n.rx - mx, dy = n.ry - my;
+        const d  = Math.hypot(dx, dy);
+        if (d < R && d > 0.001) {
+          const f = (1 - d / R);
+          n.proximity = f;
+          const push = this.MOUSE_PUSH * f * f;
+          tx += (dx / d) * push;
+          ty += (dy / d) * push;
+        }
+        // Live distance to the *animated* position, for the hover pick.
+        const dLive = Math.hypot(n.x - mx, n.y - my);
+        if (dLive < bestDist) { bestDist = dLive; bestNode = n; }
+      }
+      n.x += (tx - n.x) * k;
+      n.y += (ty - n.y) * k;
       if (n.emerge) { n.ep = Math.min(1, n.ep + dt / 550); if (n.ep >= 1) n.emerge = false; }
+    }));
+
+    // The single node closest to the cursor (within HOVER_R) is "hovered"
+    // and gets the bright accent glow in draw().
+    const HOVER_R = 32;
+    if (bestNode && bestDist < HOVER_R) {
+      bestNode.hovered = true;
+      // Smoothly grow / shrink the highlight so on/off transitions are soft.
+      bestNode.hoverI = Math.min(1, (bestNode.hoverI || 0) + dt / 140);
+    }
+    this.nodes.forEach(layer => layer.forEach(n => {
+      if (!n.hovered) n.hoverI = Math.max(0, (n.hoverI || 0) - dt / 220);
     }));
   }
 
@@ -187,18 +263,36 @@ class NetworkCanvas {
       const colStr = firing ? "124,108,240" : "91,159,212";
       layer.forEach(n => {
         const pulse = 0.65 + 0.3 * Math.sin(this.t / (1100 * n.speed) + n.phase);
-        const r = n.r * n.ep;
-        // Glow
+        const prox  = n.proximity || 0;
+        const hov   = n.hoverI   || 0;
+        const r = n.r * n.ep * (1 + 0.45 * prox + 0.55 * hov);
         const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 5);
-        g.addColorStop(0, `rgba(${colStr},${0.22 * pulse * n.ep})`);
+        g.addColorStop(0, `rgba(${colStr},${(0.22 + 0.35 * prox) * pulse * n.ep})`);
         g.addColorStop(1, "rgba(0,0,0,0)");
         ctx.beginPath(); ctx.arc(n.x, n.y, r * 5, 0, Math.PI * 2);
         ctx.fillStyle = g; ctx.fill();
-        // Core
         ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${colStr},${(0.55 + 0.35 * pulse) * n.ep})`;
+        ctx.fillStyle = `rgba(${colStr},${(0.55 + 0.35 * pulse + 0.25 * prox) * n.ep})`;
         ctx.fill();
-        // Emerge ring
+
+        // The single hovered node gets a bright accent-green glow on top
+        // of its base render, plus an animated outer ring — feels tactile.
+        if (hov > 0.01) {
+          const gh = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 7);
+          gh.addColorStop(0, `rgba(62,207,142,${0.55 * hov * n.ep})`);
+          gh.addColorStop(0.4, `rgba(62,207,142,${0.18 * hov * n.ep})`);
+          gh.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.beginPath(); ctx.arc(n.x, n.y, r * 7, 0, Math.PI * 2);
+          ctx.fillStyle = gh; ctx.fill();
+          ctx.beginPath(); ctx.arc(n.x, n.y, r * 0.85, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${0.85 * hov * n.ep})`;
+          ctx.fill();
+          const ringR = r + 4 + 3 * Math.sin(this.t / 220);
+          ctx.beginPath(); ctx.arc(n.x, n.y, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(62,207,142,${0.85 * hov * n.ep})`;
+          ctx.lineWidth = 1.4; ctx.stroke();
+        }
+
         if (n.emerge) {
           ctx.beginPath(); ctx.arc(n.x, n.y, r + 4 * (1 - n.ep), 0, Math.PI * 2);
           ctx.strokeStyle = `rgba(62,207,142,${n.ep})`;
@@ -206,6 +300,39 @@ class NetworkCanvas {
         }
       });
     });
+
+    // Cursor halo + connection lines to the nearest few nodes — this
+    // is the "the network is reaching toward the cursor" effect that
+    // makes the interactivity discoverable.
+    if (this.mouseInside) {
+      const mx = this.mouseX, my = this.mouseY;
+      const flat = [];
+      this.nodes.forEach(layer => layer.forEach(n => flat.push(n)));
+      flat.sort((a, b) => {
+        const da = (a.x - mx) ** 2 + (a.y - my) ** 2;
+        const db = (b.x - mx) ** 2 + (b.y - my) ** 2;
+        return da - db;
+      });
+      const links = flat.slice(0, this.MOUSE_LINKS);
+      links.forEach(n => {
+        const d = Math.hypot(n.x - mx, n.y - my);
+        const a = Math.max(0, 1 - d / (this.MOUSE_R * 1.4));
+        if (a <= 0) return;
+        ctx.beginPath();
+        ctx.moveTo(mx, my); ctx.lineTo(n.x, n.y);
+        ctx.strokeStyle = `rgba(124,108,240,${0.45 * a})`;
+        ctx.lineWidth = 0.9;
+        ctx.stroke();
+      });
+
+      const halo = ctx.createRadialGradient(mx, my, 0, mx, my, 28);
+      halo.addColorStop(0, "rgba(124,108,240,0.45)");
+      halo.addColorStop(1, "rgba(124,108,240,0)");
+      ctx.beginPath(); ctx.arc(mx, my, 28, 0, Math.PI * 2);
+      ctx.fillStyle = halo; ctx.fill();
+      ctx.beginPath(); ctx.arc(mx, my, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fill();
+    }
   }
 
   start() {

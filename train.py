@@ -428,6 +428,58 @@ def main():
     cum_teacher_forwards = 0
     cum_train_steps = 0
 
+    searh_cfg = cfg.get("searh") or {}
+    if bool(searh_cfg.get("enabled")):
+        if model_name != "resnet_cifar":
+            raise ValueError("searh.enabled requires model.name=resnet_cifar")
+        from training.searh_loop import run_searh
+
+        # Critic for CGSE selector branch (per-candidate scorer).
+        searh_critic = None
+        searh_critic_opt = None
+        if str(searh_cfg.get("selector", "teacher")).lower() == "critic":
+            from critics.searh_critic import PerCandidateCritic
+            from critics.student_probe import PROBE_DIM as _PROBE_DIM
+            base_local_dim = 5
+            local_dim = base_local_dim + (_PROBE_DIM if bool(searh_cfg.get("use_student_probe", False)) else 0)
+            searh_critic = PerCandidateCritic(
+                state_dim=STATE_DIM,
+                local_dim=local_dim,
+                hidden_dim=int(searh_cfg.get("hidden_dim", 64)),
+            ).to(device)
+            searh_critic_opt = torch.optim.Adam(
+                searh_critic.parameters(),
+                lr=float(searh_cfg.get("critic_lr", 0.01)),
+                weight_decay=float(searh_cfg.get("critic_weight_decay", 0.0)),
+            )
+
+        run_ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        log_csv = normalize_run_artifact_path(
+            _path_stem_suffix(train_cfg.get("log_csv"), seed_tag)
+        )
+        log_csv = canonicalize_runs_artifact(log_csv, experiment_name, "metrics")
+        searh_mlog = Path(mutation_log_jsonl) if mutation_log_jsonl else None
+        run_searh(
+            cfg=cfg,
+            student=model,
+            optimizer=optimizer,
+            teacher=teacher,
+            device=device,
+            train_loader=train_loader,
+            test_loader=test_loader,
+            experiment_name=experiment_name,
+            log_csv=log_csv,
+            run_ts=run_ts,
+            mlog_path=searh_mlog,
+            critic=searh_critic,
+            critic_optimizer=searh_critic_opt,
+            build_critic_state_fn=build_critic_state,
+        )
+        ck_path = student_checkpoint_path(experiment_name)
+        save_checkpoint(model, optimizer, str(ck_path))
+        print(f"Saved checkpoint to {ck_path}")
+        return
+
     evo_cfg = cfg.get("evolution") or {}
     if bool(evo_cfg.get("enabled")):
         if model_name != "cifar_cnn":

@@ -1,0 +1,67 @@
+# Tier 2 — paper-faithful SEArch (Liang, Xiang & Li 2025, Neurocomputing 651).
+#
+# Mechanism: ResNet-20 student trained under teacher (ResNet-56) channel-attention
+# KD (Eqs. 1-4); at the end of every stage the per-stage attention distance D(n)
+# is turned into modification value MV(n) = D(n) · deg+/deg- (Eq. 5) and the
+# argmax stage is split via deepen (sep-conv 3x3 inserted) until B_op_cap=7,
+# then widen (parallel sep-conv branch wrapping the last block). Loop terminates
+# at param_budget_factor × initial_params; final retrain follows.
+experiment:
+  name: tier2_student_resnet20_cifar10_searh
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50              # informational; searh loop sets its own schedule
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: none            # searh loop runs constant LR; final retrain optional
+  log_csv: runs_paper/tier2/metrics/tier2_student_resnet20_searh_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+  teacher_depth: 56
+
+device: auto
+
+teacher:
+  enabled: true
+  checkpoint: checkpoints/tier2/tier2_teacher_resnet56_cifar10.pt
+  depth: 56
+  base_width: 16
+  temperature: 4.0       # not used by searh attention KD; retained for compat
+  alpha: 0.0             # logit KD off; only attention-imitation loss is used
+
+mutation:
+  enabled: true
+  log_jsonl: runs_paper/tier2/mutations/tier2_student_resnet20_searh_mutations.jsonl
+
+critic:
+  enabled: false
+
+searh:
+  enabled: true
+  selector: teacher
+  param_budget_factor: 1.5
+  epochs_per_stage: 8
+  B_op: 7
+  deepen_first: true
+  gamma: 0.5
+  d_k: 64
+  lambda_init: 1.0
+  score_batches: 2
+  final_retrain_epochs: 10

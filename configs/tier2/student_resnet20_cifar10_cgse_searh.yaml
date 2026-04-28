@@ -1,0 +1,88 @@
+# Tier 2 — CGSE built on top of SEArch (teacher swapped for critic).
+#
+# Same outer loop as the SEArch config: same stages, same edge-splitting
+# operators (deepen → sep-conv 3x3, widen → parallel sep-conv branch), same
+# B_op cap, same param budget. The only differences are:
+#   1. teacher.enabled = false (no KD, no attention imitation loss)
+#   2. searh.selector = critic (a learned per-candidate scorer replaces the
+#      teacher-derived modification value)
+#
+# Documented borrowings from SEArch (see paper_documentation/SEArch-baseline-and-CGSE-evaluation-plan.md):
+#   - Iterative train-then-evolve outer loop (Algorithm 1)
+#   - Edge-splitting operator family (deepen-first, then widen)
+#   - B_op cap on stacked deepens per stage
+#   - Param-budget termination
+#   - Function-preserving mutation init (zero-init final BN of new sep-conv)
+#   - Stage-end mutation timing
+# What CGSE replaces:
+#   - Channel-attention imitation loss → no auxiliary loss, plain CE
+#   - MV(n) = D(n) · deg+/deg-          → MV(c) = π_critic(global_state, local_desc)
+experiment:
+  name: tier2_student_resnet20_cifar10_cgse_searh
+
+data:
+  name: cifar10
+  root: ./data
+  num_workers: 4
+  subset_train: null
+  subset_test: null
+
+training:
+  epochs: 50
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0005
+  seed: 42
+  lr_schedule:
+    name: none
+  log_csv: runs_paper/tier2/metrics/tier2_student_resnet20_cgse_searh_metrics.csv
+
+model:
+  name: resnet_cifar
+  depth: 20
+  base_width: 16
+  num_classes: 10
+
+device: auto
+
+teacher:
+  enabled: false
+
+mutation:
+  enabled: true
+  log_jsonl: runs_paper/tier2/mutations/tier2_student_resnet20_cgse_searh_mutations.jsonl
+
+critic:
+  enabled: false           # legacy single-decision critic disabled; SEArch loop's selector handles it
+
+searh:
+  enabled: true
+  selector: critic
+  param_budget_factor: 1.5
+  epochs_per_stage: 4       # shorter stages → more decision points (high-frequency self-evolution)
+  B_op: 7
+  deepen_first: false       # let the critic choose deepen vs widen freely
+  d_k: 64
+  hidden_dim: 64
+  critic_lr: 0.01
+  critic_weight_decay: 0.0
+  epsilon: 0.30              # exploration probability for the policy
+  entropy_beta: 0.01         # discourages noop / collapse onto one action
+  final_retrain_epochs: 10
+  max_epochs_hint: 50        # used to normalise epoch in critic's global state
+
+  # ----- CGSE-only enhancements (designed to close the gap to SEArch) -----
+  # 1. Student probe: per-stage [act_var_ratio, grad_l2_norm, weight_delta_norm].
+  #    Activation variance ratio is the *unsupervised analogue of teacher
+  #    attention distance D(n)* — when a stage's representations collapse onto
+  #    a few directions the ratio jumps toward 1, a direct bottleneck signal.
+  #    See critics/student_probe.py for definitions.
+  use_student_probe: true
+  # 2. REINFORCE baseline (EMA of past rewards, subtracted from R) — sharply
+  #    reduces gradient variance from sparse Δval rewards. baseline_momentum
+  #    controls how fast the baseline tracks recent rewards (closer to 1 =
+  #    smoother / more stable; closer to 0 = more responsive).
+  baseline_momentum: 0.9

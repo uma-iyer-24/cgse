@@ -34,6 +34,10 @@ for s in $SEEDS; do
   run_one configs/tier2/student_resnet20_cifar10_sched_layer3widen.yaml student_sched_layer3widen "$s" tier2_student_resnet20_cifar10_sched_layer3widen
   run_one configs/tier2/student_resnet20_cifar10_cgse_multiop.yaml student_cgse_multiop "$s" tier2_student_resnet20_cifar10_cgse_multiop
   run_one configs/tier2/student_resnet20_cifar10_cgse_multiop_kd_budgeted.yaml student_cgse_multiop_kd_budgeted "$s" tier2_student_resnet20_cifar10_cgse_multiop_kd_budgeted
+  # Paper-faithful SEArch (channel-attention KD + MV scoring + sep-conv edge-splitting).
+  run_one configs/tier2/student_resnet20_cifar10_searh.yaml student_searh "$s" tier2_student_resnet20_cifar10_searh
+  # CGSE built on top of the same SEArch outer loop (teacher swapped for critic, high-frequency mutation).
+  run_one configs/tier2/student_resnet20_cifar10_cgse_searh.yaml student_cgse_searh "$s" tier2_student_resnet20_cifar10_cgse_searh
 done
 
 echo "Tier 2 sweep done. See runs/tier2/."
