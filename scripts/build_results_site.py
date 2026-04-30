@@ -383,9 +383,10 @@ def main() -> None:
     print(f"Wrote {WEB / 'generated-config.js'}")
 
     if FIG_SRC.is_dir():
-        for png in FIG_SRC.glob("*.png"):
-            shutil.copy2(png, ASSETS / png.name)
-            print(f"Copied figure {png.name}")
+        for pattern in ("*.png", "*.svg"):
+            for fig in FIG_SRC.glob(pattern):
+                shutil.copy2(fig, ASSETS / fig.name)
+                print(f"Copied figure {fig.name}")
 
 
 if __name__ == "__main__":

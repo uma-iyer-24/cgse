@@ -6,8 +6,11 @@ This folder holds materials for the CGSE paper and reproducibility.
 
 | Asset | Purpose |
 |-------|---------|
+| [`figures/cgse_system_workflow.svg`](figures/cgse_system_workflow.svg) | **Figure 4.5 — System workflow:** setup (dataset → initialization) feeds a **closed evolution loop** with feedback to training; exit to final model. See [`figures/README.md`](figures/README.md) for centered embed snippets. |
 | [`figures/cgse_teacher_vs_critic.png`](figures/cgse_teacher_vs_critic.png) | High-level **teacher / KD vs CGSE / critic** contrast (also embedded in the [root README](../README.md)). |
 | [`figures/cgse_evolution_stages.png`](figures/cgse_evolution_stages.png) | **Multi-stage** train → choose edit → apply op → repeat. |
+
+See **[`figures/README.md`](figures/README.md)** for workflow figure caption text and LaTeX/HTML.
 
 The [repository `README.md`](../README.md) includes **Mermaid** diagrams (train/validate loop, arm comparison, Tier 1b stage flow) that render on GitHub; use the PNGs for slides or PDFs where Mermaid is unavailable.
 

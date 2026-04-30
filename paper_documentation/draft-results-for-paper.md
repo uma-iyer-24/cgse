@@ -59,8 +59,39 @@ Record **once** for the camera-ready version:
 
 ---
 
+## Limitations (CGSE and this study)
+
+The following points state **scope and caveats** for a fair discussion section; they are not dismissals of the method, but **bounds on the claims** reviewers and readers should expect.
+
+1. **Structural search space.** In the paper-faithful SEArch track, evolution is limited to two **growth** operators—**deepening** (residual separable conv) and **widening** (parallel branch)—under a **parameter budget**. We do not yet support **pruning**, **shrinking** channels, or **reversible** edits that undo a previous growth. The search is therefore **monotonic in capacity** until the budget or candidate set is exhausted, which may preclude some parsimonious solutions a richer search could find.
+
+2. **Policy learning under sparse feedback.** The critic is updated with **REINFORCE** using **stage-to-stage changes in validation accuracy** as the reward. That signal is **noisy and small in magnitude** relative to optimization noise, even with an **EMA baseline** and **entropy regularization**. Learning can be **slow**, **seed-dependent**, or require **tuning** of exploration (`ε`) and baseline momentum; we do not claim sample-efficiency parity with supervised training of a fixed architecture.
+
+3. **Compressed state representation.** Decisions use a **fixed hand-crafted global feature vector** (training statistics) and a **low-dimensional per-candidate descriptor** (stage, operation type, deepen count, and optionally **student-probe** scalars). The critic does **not** see a full graph embedding, FLOP accounting, or raw feature maps. This keeps the method **lightweight** but may **cap** how finely the policy can discriminate among candidates when the true bottleneck is not captured by these features.
+
+4. **Student probe as a proxy, not a teacher.** The probe’s **activation-variance ratio**, **gradient norm**, and **weight drift** are **unsupervised** proxies for “where the network is stuck.” The variance ratio is computed with **approximate** top-eigenvalue estimation (power iteration), not an exact decomposition; **grad** and **weight** features are **normalized across stages**, which stabilizes scale but discards some absolute information. These features are **analogous in role** to teacher-derived distances in SEArch, but they are **not** equivalent to **aligned intermediate supervision**.
+
+5. **Backbone and benchmark scope.** The **ResNet-CIFAR** implementation ties **node correspondence** to **stage outputs**, and **widen** candidates are **filtered** for **stride-1, same-width** `BasicBlock`s to avoid channel/shape errors. **Generalization** to arbitrary **DAG** students, other backbones, or **ImageNet-scale** training would require **non-trivial** extensions to candidate enumeration, attention-KD pairing, and compute bookkeeping—not a direct port of the current code.
+
+6. **Comparison to teacher-guided SEArch.** Our CGSE-on-SEArch arm **replaces** the teacher’s **modification-value** signal and **does not** use **channel-attention imitation loss** during the search stages where the critic operates. **Higher peak accuracy than SEArch is therefore not assumed**; the primary axes we emphasize are **teacher-free structural search**, **zero teacher forwards** on critic arms, and **wall-clock efficiency** per epoch when the teacher and attention-KD path are absent. **Tier 3** (matched outer-loop cadence) is designed to isolate **signal substitution**, not to guarantee accuracy superiority.
+
+---
+
+## Figure 4.5 — System workflow
+
+**Caption (draft).** *End-to-end system workflow. The dataset and model initialization feed a closed evolution loop: training, evaluation, a structural mutation decision, application of the chosen mutation, and continued training. The green arc indicates repetition until a stopping criterion is met (e.g. parameter budget, epoch limit, or no legal edits); a dashed path yields the final trained model.*
+
+<p align="center">
+  <img src="figures/cgse_system_workflow.svg" alt="CGSE system workflow: setup, evolution loop with repeat arc, exit to final model" width="820" />
+</p>
+
+*(Path is relative to this file: `paper_documentation/draft-results-for-paper.md` — from repo root use `paper_documentation/figures/cgse_system_workflow.svg`.)*
+
+---
+
 ## Figure callouts (suggested)
 
+- **Figure 4.5 (workflow):** `paper_documentation/figures/cgse_system_workflow.svg` — centered embed above; vector source for PDF export (see `paper_documentation/figures/README.md`).
 - **Figure (concept):** Teacher vs critic arms — `paper_documentation/figures/cgse_teacher_vs_critic.png`.
 - **Figure (pipeline):** Staged evolution — `cgse_evolution_stages.png`.
 - **Figure (quantitative):** Tier 1 mean best val accuracy by arm — export from `web/index.html` bar chart or replot from `runs/tier1/metrics/*.csv`.

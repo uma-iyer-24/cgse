@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 520" width="820" height="520" role="img" aria-labelledby="title desc">
+  <title id="title">CGSE system workflow</title>
+  <desc id="desc">Dataset and model initialization feed a closed evolution loop of training, evaluation, mutation decision, apply mutation, and continue training, with exit to final model when stopping criteria are met.</desc>
+  <defs>
+    <marker id="arrowHead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#5b9fd4"/>
+    </marker>
+    <marker id="arrowHeadGreen" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#3ecf8e"/>
+    </marker>
+    <marker id="arrowHeadMuted" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0 0, 10 4, 0 8" fill="#8b9cb3"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#0f1419"/>
+
+  <text x="120" y="28" fill="#8b9cb3" font-family="system-ui, Segoe UI, sans-serif" font-size="11" font-weight="600" letter-spacing="0.08em">SETUP</text>
+  <text x="480" y="28" fill="#8b9cb3" font-family="system-ui, Segoe UI, sans-serif" font-size="11" font-weight="600" letter-spacing="0.08em">EVOLUTION LOOP</text>
+  <text x="120" y="402" fill="#8b9cb3" font-family="system-ui, Segoe UI, sans-serif" font-size="11" font-weight="600" letter-spacing="0.08em">OUTPUT</text>
+
+  <rect x="300" y="48" width="480" height="320" rx="24" ry="24" fill="#1a2332" stroke="#5b9fd4" stroke-width="1.5" stroke-opacity="0.45" filter="url(#shadow)"/>
+
+  <!-- Setup -->
+  <rect x="48" y="52" width="200" height="44" rx="8" fill="#243044" stroke="#5b9fd4" stroke-width="1.2"/>
+  <text x="148" y="78" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="13" font-weight="600">Dataset</text>
+
+  <line x1="148" y1="96" x2="148" y2="114" stroke="#5b9fd4" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <rect x="48" y="114" width="200" height="52" rx="8" fill="#243044" stroke="#7c6cf0" stroke-width="1.2"/>
+  <text x="148" y="138" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="13" font-weight="600">Model initialization</text>
+  <text x="148" y="156" text-anchor="middle" fill="#8b9cb3" font-family="system-ui, Segoe UI, sans-serif" font-size="10">weights &amp; architecture seed</text>
+
+  <!-- Nodes (positions anchor arrow endpoints) -->
+  <!-- Training: center ~490,90 -->
+  <rect x="410" y="68" width="160" height="44" rx="8" fill="#243044" stroke="#5b9fd4" stroke-width="1.2"/>
+  <text x="490" y="94" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="13" font-weight="600">Training</text>
+
+  <!-- Evaluation -->
+  <rect x="602" y="132" width="156" height="44" rx="8" fill="#243044" stroke="#5b9fd4" stroke-width="1.2"/>
+  <text x="680" y="158" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="13" font-weight="600">Evaluation</text>
+
+  <!-- Mutation decision -->
+  <rect x="602" y="232" width="156" height="52" rx="8" fill="#243044" stroke="#7c6cf0" stroke-width="1.2"/>
+  <text x="680" y="258" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="13" font-weight="600">Mutation decision</text>
+  <text x="680" y="274" text-anchor="middle" fill="#8b9cb3" font-family="system-ui, Segoe UI, sans-serif" font-size="10">critic or teacher score</text>
+
+  <!-- Apply mutation -->
+  <rect x="410" y="288" width="160" height="44" rx="8" fill="#243044" stroke="#5b9fd4" stroke-width="1.2"/>
+  <text x="490" y="314" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="13" font-weight="600">Apply mutation</text>
+
+  <!-- Continue training -->
+  <rect x="318" y="172" width="156" height="52" rx="8" fill="#243044" stroke="#3ecf8e" stroke-width="1.2"/>
+  <text x="396" y="198" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="13" font-weight="600">Continue training</text>
+  <text x="396" y="214" text-anchor="middle" fill="#8b9cb3" font-family="system-ui, Segoe UI, sans-serif" font-size="10">next epochs / stage</text>
+
+  <!-- Entry: Init → Training -->
+  <path d="M 248 140 Q 320 90 410 90" fill="none" stroke="#5b9fd4" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <!-- Cycle: clockwise Training → Eval → Mut → Apply → Continue -->
+  <path d="M 570 90 L 602 90 L 602 132" fill="none" stroke="#5b9fd4" stroke-width="2" marker-end="url(#arrowHead)"/>
+  <path d="M 680 176 L 680 232" fill="none" stroke="#5b9fd4" stroke-width="2" marker-end="url(#arrowHead)"/>
+  <path d="M 680 284 L 680 310 L 570 310" fill="none" stroke="#5b9fd4" stroke-width="2" marker-end="url(#arrowHead)"/>
+  <path d="M 410 310 L 350 310 L 350 198 L 474 198" fill="none" stroke="#5b9fd4" stroke-width="2" marker-end="url(#arrowHead)"/>
+
+  <!-- Repeat arc: Continue → Training (feedback loop — distinct from linear pipeline charts) -->
+  <path d="M 318 198 Q 240 125 410 90" fill="none" stroke="#3ecf8e" stroke-width="2.5" marker-end="url(#arrowHeadGreen)"/>
+  <text x="268" y="128" fill="#3ecf8e" font-family="system-ui, Segoe UI, sans-serif" font-size="10" font-weight="600">repeat until stop</text>
+
+  <!-- Final model -->
+  <rect x="48" y="424" width="724" height="56" rx="10" fill="#1a2332" stroke="#3ecf8e" stroke-width="1.5" stroke-opacity="0.85"/>
+  <text x="410" y="458" text-anchor="middle" fill="#e7ecf3" font-family="system-ui, Segoe UI, sans-serif" font-size="15" font-weight="600">Final model</text>
+
+  <!-- Exit: Apply region → Final (stopping criterion) -->
+  <path d="M 490 332 L 490 424" fill="none" stroke="#8b9cb3" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrowHeadMuted)"/>
+  <text x="505" y="382" fill="#8b9cb3" font-family="system-ui, Segoe UI, sans-serif" font-size="10">when stopping criterion met</text>
+</svg>
